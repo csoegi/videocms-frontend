@@ -99,47 +99,94 @@
             </div>
         </section>
 
-        <!-- Activity: one time range scopes every history chart below -->
-        <section v-if="showActivity" class="mt-8 flex flex-col gap-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="text-base font-semibold tracking-tight">Activity</h2>
-                <TimeRangeSelect v-model="rangeHours" />
+        <!-- Dynamic Tab Switcher Navigation Bar -->
+        <div v-if="showActivity" class="flex border-b border-base-content/10 gap-2 mt-8 mb-6">
+            <button 
+                class="px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200"
+                :class="activeTab === 'general' ? 'border-primary text-primary font-bold' : 'border-transparent text-base-content/60 hover:text-base-content'"
+                @click="activeTab = 'general'"
+            >
+                <Icon name="lucide:layout-dashboard" class="w-4 h-4 inline mr-2" />
+                General
+            </button>
+
+            <button 
+                v-if="serverConfig?.AnalyticsEnabled"
+                class="px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200"
+                :class="activeTab === 'analytics' ? 'border-primary text-primary font-bold' : 'border-transparent text-base-content/60 hover:text-base-content'"
+                @click="activeTab = 'analytics'"
+            >
+                <Icon name="lucide:bar-chart-3" class="w-4 h-4 inline mr-2" />
+                Analytics
+            </button>
+
+            <button 
+                class="px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200"
+                :class="activeTab === 'remote' ? 'border-primary text-primary font-bold' : 'border-transparent text-base-content/60 hover:text-base-content'"
+                @click="activeTab = 'remote'"
+            >
+                <Icon name="lucide:download-cloud" class="w-4 h-4 inline mr-2" />
+                Remote Downloads
+            </button>
+        </div>
+
+        <!-- TAB CONTENT PANELS CONTAINER -->
+        <div class="w-full flex flex-col gap-6">
+
+            <!-- 1. GENERAL STATS TAB VIEW -->
+            <div v-if="activeTab === 'general' && showActivity" class="flex flex-col gap-6 animate-fade-in">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="text-base font-semibold tracking-tight">Activity</h2>
+                    <TimeRangeSelect v-model="rangeHours" />
+                </div>
+
+                <LazyClientOnly>
+                    <TrafficChart mode="personal" type="download" :hours="rangeHours" :height="280" />
+                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <TrafficChart mode="personal" type="upload" :hours="rangeHours" />
+                        <TrafficChart mode="personal" type="encoding" :hours="rangeHours" />
+                    </div>
+                </LazyClientOnly>
+
+                <!-- Top content -->
+                <h2 class="text-base font-semibold tracking-tight">Top content</h2>
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <LazyClientOnly>
+                        <TopTraffic mode="files" type="traffic" :is-admin-view="false" :hours="rangeHours" />
+                        <TopTraffic mode="files" type="storage" :is-admin-view="false" />
+                    </LazyClientOnly>
+                </div>
             </div>
 
-            <LazyClientOnly>
-                <TrafficChart mode="personal" type="download" :hours="rangeHours" :height="280" />
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <TrafficChart mode="personal" type="upload" :hours="rangeHours" />
-                    <TrafficChart mode="personal" type="encoding" :hours="rangeHours" />
+            <!-- 2. ANALYTICS STATS TAB VIEW -->
+            <div v-if="activeTab === 'analytics' && showActivity && serverConfig?.AnalyticsEnabled" class="flex flex-col gap-6 animate-fade-in">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="text-base font-semibold tracking-tight">Analytics Insights</h2>
                 </div>
-            </LazyClientOnly>
-        </section>
+                <div class="flex flex-col gap-6 w-full">
+                    <LazyClientOnly>
+                    <!-- Integrate existing Analytics component here -->
+                    <Analytics />
+                    </LazyClientOnly>
+                </div>
+            </div>
 
-        <!-- Top content -->
-        <section v-if="showActivity" class="mt-8 flex flex-col gap-4">
-            <h2 class="text-base font-semibold tracking-tight">Top content</h2>
-            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <!-- 3. REMOTE DOWNLOAD STATS TAB VIEW -->
+            <div v-if="activeTab === 'remote' && showActivity" class="flex flex-col gap-6 animate-fade-in">
+                <h2 class="text-base font-semibold tracking-tight">Remote downloads</h2>
                 <LazyClientOnly>
-                    <TopTraffic mode="files" type="traffic" :is-admin-view="false" :hours="rangeHours" />
-                    <TopTraffic mode="files" type="storage" :is-admin-view="false" />
+                    <TrafficChart mode="personal" type="remote-download" :hours="rangeHours" />
+                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <TrafficChart mode="personal" type="remote-download-duration" :hours="rangeHours" />
+                        <TopStats
+                            endpoint="/account/remote-download/top?mode=domains"
+                            title="Top domains by traffic"
+                            formatter="bytes" />
+                    </div>
                 </LazyClientOnly>
             </div>
-        </section>
 
-        <!-- Remote downloads -->
-        <section v-if="showActivity && serverConfig.RemoteDownloadEnabled" class="mt-8 flex flex-col gap-4">
-            <h2 class="text-base font-semibold tracking-tight">Remote downloads</h2>
-            <LazyClientOnly>
-                <TrafficChart mode="personal" type="remote-download" :hours="rangeHours" />
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <TrafficChart mode="personal" type="remote-download-duration" :hours="rangeHours" />
-                    <TopStats
-                        endpoint="/account/remote-download/top?mode=domains"
-                        title="Top domains by traffic"
-                        formatter="bytes" />
-                </div>
-            </LazyClientOnly>
-        </section>
+        </div>
     </div>
 </template>
 
@@ -156,6 +203,12 @@ const { data: accountData, fetch: fetchAccountData } = useAccountData();
 
 const rangeHours = ref(24);
 const encodingCount = ref<number | null>(null);
+
+// Define the allowed tabs explicitly using strict TypeScript types
+type DashboardTab = 'general' | 'analytics' | 'remote';
+
+// Set 'general' as your standard initial landing view on boot
+const activeTab = ref<DashboardTab>('general');
 
 async function loadEncodingCount() {
     try {

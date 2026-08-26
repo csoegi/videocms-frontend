@@ -17,6 +17,7 @@ export interface ServerConfig {
     Captcha_Recaptcha_PublicKey: string;
     Captcha_Hcaptcha_PublicKey: string;
     Captcha_Turnstile_PublicKey: string;
+    AnalyticsEnabled: boolean;
 }
 export const useServerConfig = () =>
     useState<ServerConfig>("serverConfig", () => ({
@@ -34,6 +35,7 @@ export const useServerConfig = () =>
         Captcha_Recaptcha_PublicKey: "",
         Captcha_Hcaptcha_PublicKey: "",
         Captcha_Turnstile_PublicKey: "",
+        AnalyticsEnabled: true,
     }));
 
 export interface AccountData {
