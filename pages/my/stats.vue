@@ -23,7 +23,7 @@
                         class="badge badge-sm border-none bg-success/10 text-success">up to date</span>
                     <a
                         v-else
-                        href="https://github.com/Kirari04/videocms"
+                        href="https://github.com/csoegi/videocms"
                         target="_blank"
                         class="btn btn-outline btn-xs ml-auto">
                         View release

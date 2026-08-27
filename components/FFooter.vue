@@ -12,7 +12,7 @@
                         Self-hosted video management. Retain control, ensure privacy, and stream with performance.
                     </p>
                     <div class="mt-4">
-                        <a href="https://github.com/Kirari04/videocms" target="_blank"
+                        <a href="https://github.com/csoegi/videocms" target="_blank"
                             class="btn btn-square btn-ghost btn-sm" aria-label="GitHub repository">
                             <Icon name="lucide:github" class="h-4 w-4" />
                         </a>

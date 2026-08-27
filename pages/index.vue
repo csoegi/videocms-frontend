@@ -65,8 +65,8 @@
                 </div>
                 <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                     <code
-                        class="rounded-field border border-base-300 bg-base-200 px-4 py-2.5 font-mono text-sm">docker pull kirari04/videocms</code>
-                    <a href="https://github.com/Kirari04/videocms" target="_blank" class="btn btn-ghost btn-sm gap-2 border-base-300">
+                        class="rounded-field border border-base-300 bg-base-200 px-4 py-2.5 font-mono text-sm">docker pull chrissoe/videocms</code>
+                    <a href="https://github.com/csoegi/videocms" target="_blank" class="btn btn-ghost btn-sm gap-2 border-base-300">
                         <Icon name="lucide:github" class="h-4 w-4" />
                         GitHub
                     </a>
