@@ -18,6 +18,7 @@ export interface ServerConfig {
     Captcha_Hcaptcha_PublicKey: string;
     Captcha_Turnstile_PublicKey: string;
     AnalyticsEnabled: boolean;
+    WatermarkEnabled: boolean;
 }
 export const useServerConfig = () =>
     useState<ServerConfig>("serverConfig", () => ({
@@ -36,6 +37,7 @@ export const useServerConfig = () =>
         Captcha_Hcaptcha_PublicKey: "",
         Captcha_Turnstile_PublicKey: "",
         AnalyticsEnabled: true,
+        WatermarkEnabled: false,
     }));
 
 export interface AccountData {

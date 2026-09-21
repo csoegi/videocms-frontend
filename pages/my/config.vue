@@ -668,6 +668,118 @@
                         </div>
                     </div>
                 </div>
+                <!-- Watermark Tab -->
+                <div v-if="activeTab === 'watermark'" class="flex flex-col gap-6 animate-fade-in">
+                    <div class="card bg-base-200 shadow-sm border border-base-300 h-full">
+                        <div class="card-body p-6">
+                            
+                            <!-- Header Toggle Card Section -->
+                            <div class="bg-base-300/40 border border-base-300 rounded-xl p-4 mb-4">
+                                <div class="form-control w-full">
+                                    <label class="label w-full cursor-pointer justify-between gap-4 p-0">
+                                        <div class="flex flex-col">
+                                            <span class="label-text font-bold text-base text-primary">Watermark</span>
+                                            <span class="text-xs opacity-70 mt-1">Add image or text watermark to your newly uploaded videos.</span>
+                                        </div>
+                                        <input type="checkbox" class="toggle toggle-primary toggle-md" 
+                                            :checked="String(datas.WatermarkEnabled) === 'true'" 
+                                            @change="updateBool('WatermarkEnabled', $event)" />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Two-Column Form Layout -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                
+                                <!-- Watermark Type Selector -->
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-bold">Watermark Type:</span></label>
+                                    <select v-model="datas.WatermarkType" class="select select-bordered w-full">
+                                        <option value="text">Text Watermark</option>
+                                        <option value="image">Image Watermark</option>
+                                    </select>
+                                    <label class="label"><span class="label-text-alt opacity-70">Select your preferred watermark type for videos.</span></label>
+                                </div>
+
+                                <!-- Conditional Input: Text or Image Link Field -->
+                                <div class="form-control w-full">
+                                    <template v-if="datas.WatermarkType === 'image'">
+                                        <label class="label"><span class="label-text font-bold">Watermark Image Link:</span></label>
+                                        <input :value="datas.WatermarkImageLink" 
+                                            @input="e => datas.WatermarkImageLink = (e.target as HTMLInputElement).value" 
+                                            type="text" 
+                                            placeholder="https://example.com" 
+                                            class="input input-bordered w-full" />
+                                        <label class="label"><span class="label-text-alt opacity-70">Provide a direct URL link path to your brand logo asset.</span></label>
+                                    </template>
+                                    
+                                    <template v-else>
+                                        <label class="label"><span class="label-text font-bold">Watermark Text Content:</span></label>
+                                        <input :value="datas.WatermarkText" 
+                                            @input="e => datas.WatermarkText = (e.target as HTMLInputElement).value" 
+                                            type="text" 
+                                            placeholder="Enter watermark text" 
+                                            class="input input-bordered w-full" />
+                                        <label class="label"><span class="label-text-alt opacity-70">Specify text string to place over video output.</span></label>
+                                    </template>
+                                </div>
+
+                                <!-- Position & Margin Fields -->
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-bold">Position & Margin:</span></label>
+                                    <div class="flex gap-3">
+                                        <select v-model="datas.WatermarkPosition" class="select select-bordered flex-1">
+                                            <option value="top_left">Top Left</option>
+                                            <option value="top_center">Top Center</option>
+                                            <option value="top_right">Top Right</option>
+                                            <option value="mid_left">Middle Left</option>
+                                            <option value="mid_center">Middle Center</option>
+                                            <option value="mid_right">Middle Right</option>
+                                            <option value="bottom_left">Bottom Left</option>
+                                            <option value="bottom_center">Bottom Center</option>
+                                            <option value="bottom_right">Bottom Right</option>
+                                        </select>
+                                        <!-- Bound directly to string payload -->
+                                        <input :value="datas.WatermarkMargin" 
+                                            @input="e => datas.WatermarkMargin = (e.target as HTMLInputElement).value" 
+                                            type="number" 
+                                            min="0" 
+                                            max="100" 
+                                            class="input input-bordered w-24 text-center" />
+                                    </div>
+                                    <label class="label"><span class="label-text-alt opacity-70">Select position and offset margin value in pixels.</span></label>
+                                </div>
+
+                                <!-- Watermark Transparency Slider -->
+                                <div class="form-control w-full">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="label-text font-bold">Watermark Transparency</span>
+                                        <span class="badge badge-primary text-xs font-mono font-bold">{{ datas.WatermarkTransparency }}%</span>
+                                    </div>
+                                    <div class="w-full">
+                                        <!-- Kept as a string binding instead of parseInt() -->
+                                        <input type="range" 
+                                            min="0" 
+                                            max="100" 
+                                            step="1"
+                                            :value="datas.WatermarkTransparency" 
+                                            @input="e => datas.WatermarkTransparency = (e.target as HTMLInputElement).value" 
+                                            class="range range-primary range-sm w-full" />
+                                        <div class="w-full flex justify-between text-[10px] px-1 mt-1 opacity-50 font-mono select-none">
+                                            <span>0%</span>
+                                            <span>25%</span>
+                                            <span>50%</span>
+                                            <span>75%</span>
+                                            <span>100%</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -780,6 +892,7 @@ const tabs = [
     { id: 'quality', label: 'Quality' },
     { id: 'performance', label: 'Performance' },
     { id: 'analytics', label: 'Analytics' },
+    { id: 'watermark', label: 'Watermark' },
     { id: 'captcha', label: 'Captcha' },
     { id: 'plugins', label: 'Plugins' },
 ];
@@ -1009,6 +1122,14 @@ export interface ConfigResponse {
     AnalyticsEnabled: string
     AnalyticsLogDuration: string
     AnalyticsWorkerInterval: string
+
+    WatermarkEnabled: string
+	WatermarkType: string
+	WatermarkText: string
+	WatermarkImageLink: string
+	WatermarkPosition: string
+	WatermarkMargin: string
+	WatermarkTransparency: string
 }
 </script>
 
