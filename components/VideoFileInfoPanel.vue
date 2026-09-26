@@ -105,6 +105,70 @@
                 </div>
             </div>
 
+            <!-- 🌟 SUBTITLE ACCORDION SECTION -->
+            <div v-if="fileInfo" class="border-t border-base-300/60">
+                <div class="collapse collapse-arrow rounded-none">
+                    <input type="checkbox" aria-label="Toggle subtitles" checked />
+                    <div class="collapse-title min-h-0 py-3 text-sm text-base-content/60 flex items-center justify-between pr-8">
+                        <span>Subtitles</span>
+                        <!-- 💡 SUBTITLE MODE BADGE AUTO-FALLBACK RESOLUTION CHECK -->
+                        <span class="badge badge-xs uppercase font-bold px-1.5" :class="{
+                            'badge-primary': fileInfo?.SubtitleMode  === 'soft',
+                            'badge-secondary': fileInfo?.SubtitleMode === 'hard',
+                            'badge-ghost text-base-content/40': !fileInfo?.SubtitleMode || fileInfo?.SubtitleMode === 'none'
+                        }">{{ fileInfo?.SubtitleMode || 'none' }}</span>
+                    </div>
+                    <div class="collapse-content p-0 px-4 pb-3 text-xs flex flex-col gap-2.5">
+                        
+                        <!-- Columnar Subtitle Track Rows Loop -->
+                        <div class="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1">
+                            <div v-for="sub in fileInfo?.Subtitles" :key="sub.UUID"
+                                 class="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-base-300/40 py-1.5 last:border-0"
+                            >
+                                <!-- Left Column: Filename Target -->
+                                <span class="min-w-0 flex-1 truncate" :title="sub.Name">
+                                    {{ sub.Name }}
+                                </span>
+
+                                <!-- Right Column: Columnar Data Chips and Far Edge Status -->
+                                <div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                                    <!-- Language Chip -->
+                                    <span class="badge badge-ghost badge-xs font-bold uppercase tabular-nums tracking-wider px-1">
+                                        {{ sub.Lang ? sub.Lang : 'UND' }}
+                                    </span>
+                                    <!-- Codec Chip -->
+                                    <span class="badge badge-ghost badge-xs uppercase tabular-nums px-1">
+                                        {{ sub.Codec || 'vtt' }}
+                                    </span>
+                                    
+                                    <!-- Far Right Status Indicator Anchor -->
+                                    <div class="tooltip tooltip-left" :data-tip="sub.Ready && !sub.Failed ? 'Ready' : sub.Failed ? 'Failed' : 'Processing'">
+                                        <Icon v-if="sub.Ready && !sub.Failed" name="lucide:check-circle-2" class="h-3 w-3 text-success shrink-0" />
+                                        <Icon v-else-if="sub.Failed" name="lucide:alert-circle" class="h-3 w-3 text-error shrink-0" />
+                                        <span v-else class="loading loading-spinner loading-xs text-warning shrink-0"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Empty Fallback Layout Grid Placeholder -->
+                            <div v-if="!fileInfo?.Subtitles || fileInfo?.Subtitles.length === 0" class="text-center py-3 text-base-content/40 italic">
+                                No subtitle tracks assigned
+                            </div>
+                        </div>
+
+                        <!-- 💡 Configure Subtitles Triggers Modal Action Button -->
+                        <button v-if="canManage && fileInfo?.SubtitleMode !== 'hard'"
+                                type="button"
+                                class="btn btn-ghost btn-sm w-full border-base-300 hover:bg-base-200 mt-1 font-semibold gap-1"
+                                @click="emit('configureSubtitles', fileInfo)"
+                        >
+                            <Icon name="lucide:sliders-horizontal" class="h-3 w-3" />
+                            Configure Subtitles
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div v-if="fileInfo?.Qualitys?.length" class="border-t border-base-300/60">
                 <div class="collapse-arrow collapse rounded-none">
                     <input type="checkbox" aria-label="Toggle encodings" />
@@ -165,12 +229,14 @@ interface FileInfoItem {
     ID: number;
     UUID: string;
     Name: string;
+    FileUUID: string;
     Thumbnail: string;
     CustomThumbnail: boolean;
     ParentFolderID: number;
     Size: number;
     Duration: number;
     Qualitys: Quality[];
+    SubtitleMode: 'none' | 'soft' | 'hard'; 
     Subtitles: Subtitle[];
     Audios: Audio[];
     Tags: Tag[];
@@ -189,10 +255,15 @@ interface Quality {
 }
 
 interface Subtitle {
-    Name: string;
-    Type: string;
-    Lang: string;
-    Ready: boolean;
+  UUID: string;
+  Name: string;
+  Type: string;
+  Lang: string;
+  Codec: string;
+  Ready: boolean;
+  Failed: boolean;
+  Progress: number;
+  Source: string;
 }
 
 interface Audio {
@@ -217,13 +288,14 @@ interface VideoFileInfoPanelProps {
 
 const props = defineProps<VideoFileInfoPanelProps>();
 const emit = defineEmits<{
-    close: [];
-    exportFile: [file: FileListItem];
-    renameFile: [file: FileListItem];
-    createTag: [];
-    deleteTag: [linkId: number, tagId: number];
-    uploadThumbnail: [thumbnail: File];
-    resetThumbnail: [];
+  close: [];
+  exportFile: [file: FileListItem];
+  renameFile: [file: FileListItem];
+  createTag: [];
+  deleteTag: [linkId: number, tagId: number];
+  uploadThumbnail: [thumbnail: File];
+  resetThumbnail: [];
+  configureSubtitles: [fileInfo: FileInfoItem];
 }>();
 
 const contextFile = computed(() => {

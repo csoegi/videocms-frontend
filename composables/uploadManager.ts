@@ -52,6 +52,12 @@ export interface QueueItem {
     lastProgressAt?: number;
     lastSpeedUpdateAt?: number;
     uploadSpeedSamples?: UploadSpeedSample[];
+     // --- SUBTITLE PROPERTIES ---
+    isRemote?: boolean;
+    remoteUrl?: string;
+    subtitleMode?: 'none' | 'soft' | 'hard';
+    selectedSubForBurn?: string;
+    subtitleFiles?: Array<{ id: string; file: File; lang: string }>;
 }
 
 export interface QueueItemLog {
@@ -125,7 +131,13 @@ export const getUploadQueue = () => upload_queue;
 export const getUploadSpeed = () => upload_speed_state;
 export const getActiveUploadCount = () => active_upload_count_state;
 
-export const addToUploadQueue = (files: FileList, folderId = 0) => {
+export const addToUploadQueue = (
+    files: FileList, 
+    folderId = 0,
+    subtitleMode: 'none' | 'soft' | 'hard' = 'none',
+    selectedSubForBurn: string = '',
+    subtitleFiles: Array<{ id: string; file: File; lang: string }> = []
+) => {
     for (const file of files) {
         const ext = file.name.split(".").pop() ?? "";
         const uuid = uuidv4();
@@ -145,6 +157,10 @@ export const addToUploadQueue = (files: FileList, folderId = 0) => {
             speedBytesPerSecond: 0,
             uploadSpeedSamples: [],
             log: [],
+            // 💡 NEW SUBTITLE TRACK SELECTIONS MAP KEYS
+            subtitleMode: subtitleMode,
+            selectedSubForBurn: selectedSubForBurn,
+            subtitleFiles: [...subtitleFiles] // Safely maps a shallow copy of attached tracks
         });
 
         if (!allowed_extensions.includes(ext.toLowerCase())) {
@@ -388,9 +404,12 @@ const startTusUpload = async (uuid: string) => {
     const metadata: Record<string, string> = {
         filename: item.name,
         client_upload_uuid: item.uuid,
+        subtitle_mode: item.subtitleMode || 'none',
+        selected_sub_for_burn: item.selectedSubForBurn || '',
     };
+
     if (item.folderId > 0) {
-        metadata.parent_folder_id = `${item.folderId}`;
+        metadata.parent_folder_id = `${item.folderId}`; 
     }
 
     const chunkSize = Math.max(1, Number(useServerConfig().value.MaxUploadChunkSize || 20 * 1024 * 1024));
@@ -403,9 +422,20 @@ const startTusUpload = async (uuid: string) => {
         ? createAdaptiveUploadController(uuid, item, endpoint, headers, metadata, chunkSize)
         : createSingleTusUploadController(uuid, item, endpoint, headers, metadata, chunkSize);
 
+    const triggerSubtitleStaging = async () => {
+        if (item.subtitleFiles && item.subtitleFiles.length > 0) {
+            try {
+                await uploadItemSubtitleTracks(item, item.uuid); 
+            } catch (subErr) {
+                console.error("Fail to stage subtitle tracks!", subErr);
+            }
+        }
+    };
+
     item.upload = controller;
     try {
         await controller.start();
+        await triggerSubtitleStaging();
     } catch (error) {
         const fallbackIndex = getFileIndexByUuid(uuid);
         const fallbackItem = fallbackIndex === null ? null : upload_queue.value[fallbackIndex];
@@ -428,6 +458,7 @@ const startTusUpload = async (uuid: string) => {
         controller = createSingleTusUploadController(uuid, fallbackItem, endpoint, headers, metadata, chunkSize);
         fallbackItem.upload = controller;
         await controller.start();
+        await triggerSubtitleStaging();
     }
 
     const currentIndex = getFileIndexByUuid(uuid);
@@ -515,6 +546,28 @@ const createSingleTusUploadController = (
                     resolve();
                 },
                 onError(error) {
+                    // 💡 DEVELOPMENT FIX:
+                    // If the server returns a 404, the local storage cache holds a dead token.
+                    // We manually clears localStorage to get rid of stale data
+                    if (error.originalResponse && error.originalResponse.getStatus() === 404) {
+                        //console.warn("[UPLOAD-DEBUG] Detected a stale cached Tus URL (404). Clearing fingerprint cache...");
+                        // If using tus-js-client, you can explicitly remove the fingerprint matching this item
+                        if (item.upload && item.upload.url) {
+                            const fingerprint = `tus::${item.name}::${item.size}::...`; // Tus internal fingerprint convention
+                            localStorage.removeItem(fingerprint);
+                        }
+                        
+                        // Log the warning status directly to the item interface card window view
+                        item.log.push({
+                            level: "warn",
+                            title: "Stale Cache Cleared",
+                            description: " Wiped dead upload tokens. Please click 'Start upload' again to begin freshly."
+                        });
+                        
+                        item.uploading = false;
+                        item.progress = 0;
+                        return;
+                    }
                     settled = true;
                     reject(error);
                 },
@@ -598,6 +651,28 @@ const createAdaptiveUploadController = (
             }
         },
         onError() {
+            // 💡 DEVELOPMENT FIX:
+            // If the server returns a 404, the local storage cache holds a dead token.
+            // We manually clears localStorage to get rid of stale data
+            if (error.originalResponse && error.originalResponse.getStatus() === 404) {
+                //console.warn("[UPLOAD-DEBUG] Detected a stale cached Tus URL (404). Clearing fingerprint cache...");
+                // If using tus-js-client, you can explicitly remove the fingerprint matching this item
+                if (item.upload && item.upload.url) {
+                    const fingerprint = `tus::${item.name}::${item.size}::...`; // Tus internal fingerprint convention
+                    localStorage.removeItem(fingerprint);
+                }
+                
+                // Log the warning status directly to the item interface card window view
+                item.log.push({
+                    level: "warn",
+                    title: "Stale Cache Cleared",
+                    description: " Wiped dead upload tokens. Please click 'Start upload' again to begin freshly."
+                });
+                
+                item.uploading = false;
+                item.progress = 0;
+                return;
+            }
             updateUploadSpeedState();
         },
         onShouldRetry(error, retryAttempt) {
@@ -1146,4 +1221,37 @@ const addLogToFile = (uuid: string, log: QueueItemLog, errored = false) => {
 const getFileIndexByUuid = (uuid: string) => {
     const index = upload_queue.value.findIndex((e) => e.uuid === uuid);
     return index < 0 ? null : index;
+};
+
+export const uploadItemSubtitleTracks = async (item: any, targetFileId: string) => {
+
+    if (!item || !item.subtitleFiles || item.subtitleFiles.length === 0) {
+        return;
+    }
+
+    const conf = useRuntimeConfig();
+    const token = useToken();
+    const formData = new FormData();
+
+    // Map internal reference markers so the controller knows where to link the assets
+    formData.append("file_uuid", targetFileId);
+    formData.append("subtitle_mode", item.subtitleMode || "none");
+    formData.append("selected_sub_for_burn", item.selectedSubForBurn || "");
+
+    item.subtitleFiles.forEach((sub: any) => {
+        // Appends the raw binary browser file components cleanly
+        formData.append("subtitles", sub.file);
+        formData.append(`lang_${sub.file.name}`, sub.lang || "und");
+    });
+
+    //console.log(`[UPLOAD-DEBUG] Firing multi-part upload to endpoint for ${item.subtitleFiles.length} tracks...`);
+
+    // Fire the raw form binary transmission payload directly down to your registered protectedApi route definition path
+    await $fetch(`${conf.public.apiUrl}/subtitle/upload`, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${token.value}`
+        },
+        body: formData
+    });
 };

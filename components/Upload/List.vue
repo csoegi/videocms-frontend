@@ -121,6 +121,64 @@
                                     :class="{ 'bg-success': item.fin, 'bg-error': itemHasErrors(item) }"
                                 ></div>
                             </div>
+
+                            <!-- Subtitle Settings -->
+                            <div class="mt-2 flex flex-col gap-1.5">
+                                <button type="button" 
+                                        class="btn btn-ghost btn-xs gap-1.5 justify-start text-primary w-fit font-semibold"
+                                        @click="toggleSubDrawer(item.uuid)">
+                                    <Icon name="lucide:captions" class="h-3.5 w-3.5" />
+                                    {{ activeConfigDrawers[item.uuid] ? 'Hide Subtitle Settings' : 'Configure Subtitles' }}
+                                </button>
+
+                                <!-- Inline Configuration Drawer -->
+                                <div v-if="activeConfigDrawers[item.uuid]" 
+                                    class="bg-base-300/40 rounded-lg p-2.5 border border-base-300 mt-1 flex flex-col gap-2 text-xs transition-all duration-200">
+                                    
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="opacity-70 font-medium">Render Mode:</span>
+                                        <div class="join border border-base-300/80">
+                                            <button type="button" class="btn btn-[10px] h-6 min-h-[24px] join-item px-2"
+                                                    :class="item.subtitleMode === 'none' || !item.subtitleMode ? 'btn-primary font-bold' : 'btn-ghost'"
+                                                    @click="item.subtitleMode = 'none'">None</button>
+                                            <button type="button" class="btn btn-[10px] h-6 min-h-[24px] join-item px-2"
+                                                    :class="item.subtitleMode === 'soft' ? 'btn-primary font-bold' : 'btn-ghost'"
+                                                    @click="item.subtitleMode = 'soft'">Soft</button>
+                                            <button type="button" class="btn btn-[10px] h-6 min-h-[24px] join-item px-2"
+                                                    :class="item.subtitleMode === 'hard' ? 'btn-primary font-bold' : 'btn-ghost'"
+                                                    @click="item.subtitleMode = 'hard'">Hard</button>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="item.subtitleMode && item.subtitleMode !== 'none'" class="flex flex-col gap-2 border-t border-base-300/60 pt-2">
+                                        <div class="form-control w-full">
+                                            <input type="file" accept=".srt,.vtt,.ass" multiple 
+                                                class="file-input file-input-bordered file-input-[10px] h-7 w-full bg-base-100" 
+                                                @change="onAddTrackToItem($event, item)" />
+                                        </div>
+
+                                        <div v-if="item.subtitleFiles && item.subtitleFiles.length > 0" 
+                                            class="flex flex-col gap-1 bg-base-100 p-1.5 rounded border border-base-300">
+                                            <div v-for="sub in item.subtitleFiles" :key="sub.id" class="flex items-center justify-between text-[11px]">
+                                                <span class="truncate font-mono opacity-80 max-w-[140px] pl-1">{{ sub.file.name }}</span>
+                                                <div class="flex items-center gap-1">
+                                                    <input v-model="sub.lang" type="text" placeholder="eng" maxlength="3" 
+                                                        class="input input-bordered input-xs w-10 text-center text-[10px] h-5 min-h-[20px] p-0" />
+                                                    <button type="button" class="btn btn-ghost btn-xs text-error h-5 min-h-[20px] px-1" 
+                                                            @click="removeTrackFromItem(item, sub.id)">×</button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div v-if="item.subtitleMode === 'hard' && item.subtitleFiles && item.subtitleFiles.length > 0" class="form-control w-full">
+                                            <select v-model="item.selectedSubForBurn" class="select select-bordered select-[10px] h-7 min-h-[28px] w-full bg-base-100 py-0 text-xs">
+                                                <option disabled value="">-- Select Burn Target --</option>
+                                                <option v-for="sub in item.subtitleFiles" :key="sub.id" :value="sub.file.name">{{ sub.file.name }}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -540,5 +598,42 @@ async function deleteSession(tusID: string) {
     }
     isLoadingDelete.value = false;
     refreshSessions();
+}
+
+// Handle Subtitles Drawer
+const activeConfigDrawers = ref<Record<string, boolean>>({})
+
+function toggleSubDrawer(uuid: string) {
+  if (uuid) {
+    activeConfigDrawers.value[uuid] = !activeConfigDrawers.value[uuid]
+  }
+}
+
+function onAddTrackToItem(event: Event, item: any) {
+  const target = event.target as HTMLInputElement
+  if (!target || !target.files) return
+
+  if (!item.subtitleFiles) item.subtitleFiles = []
+  if (!item.subtitleMode) item.subtitleMode = 'none'
+
+  for (let i = 0; i < target.files.length; i++) {
+    const file = target.files[i]
+    if (!file) continue
+    
+    item.subtitleFiles.push({
+      id: Math.random().toString(36).substring(2),
+      file: file,
+      lang: 'id'
+    })
+  }
+
+  if (!item.selectedSubForBurn && item.subtitleFiles.length > 0) {
+    item.selectedSubForBurn = item.subtitleFiles[0].file.name
+  }
+}
+
+function removeTrackFromItem(item: any, trackId: string) {
+  item.subtitleFiles = item.subtitleFiles.filter((s: any) => s.id !== trackId)
+  if (item.subtitleFiles.length === 0) item.selectedSubForBurn = ''
 }
 </script>

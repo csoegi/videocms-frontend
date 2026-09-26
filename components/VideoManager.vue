@@ -336,6 +336,7 @@
                         @delete-tag="deleteTag"
                         @upload-thumbnail="uploadThumbnail"
                         @reset-thumbnail="resetThumbnail"
+                        @configure-subtitles="openConfigureSubtitleFromInfo" 
                     />
                 </div>
             </div>
@@ -360,6 +361,7 @@
                         @delete-tag="deleteTag"
                         @upload-thumbnail="uploadThumbnail"
                         @reset-thumbnail="resetThumbnail"
+                        @configure-subtitles="openConfigureSubtitleFromInfo"
                     />
                 </div>
                 <form method="dialog" class="modal-backdrop"><button @click="closeFileInfo">close</button></form>
@@ -402,6 +404,122 @@
                         <button type="submit" class="btn btn-primary btn-sm" :disabled="!createTagValue">Add tag</button>
                     </div>
                 </form>
+                <form method="dialog" class="modal-backdrop"><button>close</button></form>
+            </dialog>
+
+            <!-- 🌟 SUBTITLE MODAL  -->
+            <dialog id="subtitle_configuration_modal" class="modal" @close="closeSubtitleModal">
+                <div class="modal-box max-w-lg border border-base-300 bg-base-100 p-5 rounded-box shadow-xl flex flex-col gap-4 text-sm">
+                    <div class="flex items-center justify-between mb-4 border-b border-base-300/60 pb-2">
+                        <h3 class="font-bold flex items-center gap-2">
+                            <Icon name="lucide:captions" class="w-4 h-4 text-primary" />
+                            Configure Video Subtitles
+                        </h3>
+                         <button type="button" onclick="subtitle_configuration_modal.close()"
+                            class="btn btn-square btn-ghost btn-sm absolute top-3 right-3" aria-label="Close">
+                            <Icon name="lucide:x" class="h-4 w-4" />
+                        </button>
+                    </div>
+                    
+                    <p class="text-xs opacity-70 truncate font-medium">{{ fileInfo?.Name }}</p>
+
+                    <!-- SECTION A: GLOBAL MODE SELECTION (WITH HIGH-CONTRAST HARD-BURN LOCKDOWN GUARD) -->
+                    <div class="bg-base-200/50 border border-base-300 rounded-xl p-3 flex flex-col gap-3">
+                        
+                        <!-- 💡 1. RE-STYLED HIGH-CONTRAST ALERT BANNER -->
+                        <div v-if="fileInfo?.SubtitleMode === 'hard' || fileInfo?.File?.SubtitleMode === 'hard'" 
+                             class="alert bg-warning text-warning-content text-[11px] p-2.5 rounded-lg border-none flex items-start gap-2 font-semibold shadow-sm"
+                        >
+                            <Icon name="lucide:lock-keyhole" class="h-4 w-4 shrink-0 mt-0.5" />
+                            <span>This video has been permanently hard-burned. Subtitle tracks are baked directly into the video and cannot be changed or reverted.</span>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <span class="font-semibold text-xs opacity-80">Rendering Mode:</span>
+                            <div class="join border border-base-300/60 bg-base-100">
+                                <button v-for="mode in ['none', 'soft', 'hard']" :key="mode" type="button"
+                                        class="btn btn-[10px] h-7 min-h-[28px] join-item px-3 font-semibold text-xs uppercase"
+                                        :disabled="fileInfo?.SubtitleMode === 'hard' || fileInfo?.File?.SubtitleMode === 'hard'"
+                                        :class="modalConfig.SubtitleMode === mode ? 'btn-primary text-white font-bold' : 'btn-ghost opacity-70'"
+                                        @click="modalConfig.SubtitleMode = mode">
+                                    {{ mode }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Target Burn track Select Dropdown (Active if mode is chosen as Hard but NOT saved yet) -->
+                        <div v-if="modalConfig.SubtitleMode === 'hard' && (fileInfo?.SubtitleMode !== 'hard' && fileInfo?.File?.SubtitleMode !== 'hard')" 
+                             class="form-control w-full border-t border-base-300/60 pt-2"
+                        >
+                            <label class="label py-1"><span class="label-text text-[11px] opacity-70">Target Burn Track:</span></label>
+                            <select v-model="modalConfig.SelectedBurnUUID" class="select select-bordered select-sm w-full bg-base-100 font-medium">
+                                <option value="">-- Choose Track to Burn --</option>
+                                <option v-for="sub in fileInfo?.Subtitles" :key="sub.UUID" :value="sub.UUID">
+                                    [{{ sub.Lang.toUpperCase() }}] {{ sub.Name }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <button v-if="fileInfo?.SubtitleMode !== 'hard' && fileInfo?.File?.SubtitleMode !== 'hard'"
+                                type="button" 
+                                :disabled="isSavingConfig || (modalConfig.SubtitleMode === 'hard' && !modalConfig.SelectedBurnUUID)" 
+                                class="btn btn-primary btn-sm w-full font-bold uppercase mt-1" 
+                                @click="saveGlobalConfig"
+                        >
+                            <span v-if="isSavingConfig" class="loading loading-spinner loading-xs"></span>
+                            Apply Settings
+                        </button>
+                    </div>
+                    
+                    <!-- SECTION B: UPLOAD NEW DIRECT TRACK FORM -->
+                    <div class="border-t border-base-300 pt-3 flex flex-col gap-2">
+                        <span class="font-semibold text-xs opacity-80 pl-1">Upload New Track:</span>
+                        <div class="flex gap-2 items-end">
+                            <div class="form-control flex-1">
+                                <input type="file" accept=".srt,.vtt" class="file-input file-input-bordered file-input-xs w-full bg-base-100" @change="catchSelectedTrackFile" ref="trackFileInput" />
+                            </div>
+                            <div class="form-control w-16">
+                                <input type="text" v-model="newTrackLang" class="input input-bordered input-xs uppercase text-center font-bold tracking-wider" placeholder="ENG" maxlength="3" />
+                            </div>
+                            <button type="button" :disabled="isUploadingTrack || !localFileHandle" class="btn btn-primary btn-xs font-bold px-3" @click="uploadNewTrack">
+                                <span v-if="isUploadingTrack" class="loading loading-spinner loading-xs"></span>
+                                <Icon v-else name="lucide:upload-cloud" class="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SECTION C: CURRENT TRACKS TABLE LIST (SOURCE COLUMN REMOVED) -->
+                    <div class="flex flex-col gap-1.5">
+                        <span class="font-semibold text-xs opacity-80 pl-1">Active Tracks:</span>
+                        <div class="border border-base-300 rounded-xl overflow-hidden max-h-40 overflow-y-auto bg-base-200/20">
+                            <table class="table table-xs w-full bg-base-100">
+                                <thead>
+                                    <tr class="bg-base-200/60 text-base-content/60">
+                                        <th>Name</th>
+                                        <th class="w-20 text-center">Lang</th>
+                                        <th class="w-16 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="sub in fileInfo?.Subtitles" :key="sub.UUID" class="hover:bg-base-200/40">
+                                        <td class="truncate max-w-[200px] font-medium opacity-80" :title="sub.Name">{{ sub.Name }}</td>
+                                        <td class="text-center font-bold uppercase tabular-nums text-primary">{{ sub.Lang }}</td>
+                                        <td class="text-center">
+                                            <button type="button" :disabled="deletingTrackId === sub.UUID" class="btn btn-ghost btn-xs text-error p-0 h-6 w-6 min-h-0 mx-auto flex items-center justify-center" @click="deleteTrack(sub.UUID)">
+                                                <span v-if="deletingTrackId === sub.UUID" class="loading loading-spinner loading-xs"></span>
+                                                <Icon v-else name="lucide:trash-2" class="h-3.5 w-3.5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!fileInfo?.Subtitles || fileInfo.Subtitles.length === 0">
+                                        <td colspan="3" class="text-center py-4 opacity-50 italic">No tracks linked</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
                 <form method="dialog" class="modal-backdrop"><button>close</button></form>
             </dialog>
 
@@ -968,12 +1086,14 @@ interface FileInfoItem {
     ID: number;
     UUID: string;
     Name: string;
+    FileUUID: string;
     Thumbnail: string;
     CustomThumbnail: boolean;
     ParentFolderID: number;
     Size: number;
     Duration: number;
     Qualitys: Quality[];
+    SubtitleMode: 'none' | 'soft' | 'hard'; 
     Subtitles: Subtitle[];
     Audios: Audio[];
     Tags: Tag[];
@@ -990,10 +1110,15 @@ interface Quality {
     Size: number;
 }
 interface Subtitle {
+    UUID: string;
     Name: string;
     Type: string;
     Lang: string;
+    Codec: string;
     Ready: boolean;
+    Failed: boolean;
+    Progress: number;
+    Source: string;
 }
 interface Audio {
     Name: string;
@@ -1097,7 +1222,6 @@ const openCreateTagFromInfo = () => {
     closeFileInfoDialog(true);
     openCreateTag();
 };
-
 
 const openRenameFile = (linkId: number, fileName: string) => {
     if (!canManage.value) return;
@@ -1736,6 +1860,115 @@ onBeforeRouteLeave(async (to, from) => {
     ).close();
     await new Promise((res) => setTimeout(res, 100));
 });
+
+// Subtitle Logic
+const isSavingConfig = ref(false);
+const isUploadingTrack = ref(false);
+const deletingTrackId = ref('');
+const newTrackLang = ref('id'); // System fallback language chip default
+const localFileHandle = ref<File | null>(null);
+const trackFileInput = ref<HTMLInputElement | null>(null);
+const modalConfig = ref({
+    SubtitleMode: 'none',
+    SelectedBurnUUID: ''
+});
+
+function openConfigureSubtitleFromInfo(fileItem: any) {
+    // 1. Synchronize initial configuration states smoothly
+    modalConfig.value.SubtitleMode = fileItem.SubtitleMode || fileItem.File?.SubtitleMode || 'none';
+    const burnTarget = fileItem.Subtitles?.find((s: any) => s.SelectedForBurn || s.selected_for_burn);
+    modalConfig.value.SelectedBurnUUID = burnTarget ? burnTarget.UUID : '';
+    
+    // 2. Safely clear the mobile info overlay pane context beforehand 
+    closeFileInfoDialog(true);
+    
+    // 3. Trigger the browser's top-level dialog rendering tree natively!
+    const subModal = document.getElementById("subtitle_configuration_modal") as HTMLDialogElement;
+    if (subModal) {
+        subModal.showModal();
+    }
+}
+
+function closeSubtitleModal() {
+    // Clean up local tracking file inputs fragments safely
+    localFileHandle.value = null;
+    if (trackFileInput.value) trackFileInput.value.value = '';
+    
+    // Shut down the dialog layer using the native element command selector
+    if (typeof syncFileInfoLayout === 'function') {
+        syncFileInfoLayout();
+    }
+}
+
+function catchSelectedTrackFile(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        localFileHandle.value = target.files[0];
+    }
+}
+
+// 1. DISPATCH ACCORDING GLOBAL CONFIG SAVES
+async function saveGlobalConfig() {
+	if (!fileInfo.value) return;
+	isSavingConfig.value = true;
+	try {
+		await $fetch(`/api/video/${fileInfo.value.FileUUID}/subtitles/config`, {
+			method: 'POST',
+            headers: { Authorization: `Bearer ${token.value}` },
+			body: modalConfig.value
+		});
+        
+		// Refresh active sidebar components panel context data structures
+		if (typeof syncFileInfoLayout === 'function') syncFileInfoLayout();
+	} catch (err) {
+		console.error("Failed to update render config:", err);
+	} finally {
+		isSavingConfig.value = false;
+	}
+}
+
+// 2. DISPATCH PHYSICAL UPLOAD RUNS
+async function uploadNewTrack() {
+	if (!fileInfo.value || !localFileHandle.value) return;
+	isUploadingTrack.value = true;
+	
+	const fd = new FormData();
+	fd.append('subtitle_file', localFileHandle.value);
+	fd.append('lang', newTrackLang.value.toLowerCase() || 'id');
+
+	try {
+		await $fetch(`/api/video/${fileInfo.value.FileUUID}/subtitles/upload`, {
+			method: 'POST',
+            headers: { Authorization: `Bearer ${token.value}` },
+			body: fd
+		});
+		localFileHandle.value = null;
+		if (trackFileInput.value) trackFileInput.value.value = '';
+		if (typeof syncFileInfoLayout === 'function') syncFileInfoLayout();
+	} catch (err) {
+		console.error("Upload track failed:", err);
+	} finally {
+		isUploadingTrack.value = false;
+	}
+}
+
+// 3. DISPATCH DELETES
+async function deleteTrack(subUUID: string) {
+	if (!fileInfo.value) return;
+	deletingTrackId.value = subUUID;
+	try {
+		await $fetch(`/api/video/${fileInfo.value.FileUUID}/subtitles/track/${subUUID}`, {
+			method: 'DELETE',
+            headers: { Authorization: `Bearer ${token.value}` }
+		});
+		if (typeof syncFileInfoLayout === 'function') syncFileInfoLayout();
+	} catch (err) {
+		console.error("Purge track failed:", err);
+	} finally {
+		deletingTrackId.value = '';
+	}
+}
+
 </script>
 
 <style scoped>

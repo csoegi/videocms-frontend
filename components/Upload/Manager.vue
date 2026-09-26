@@ -1,9 +1,8 @@
 <template>
     <div class="flex min-h-[520px] w-full grow flex-col xl:h-[calc(100dvh-12rem)]">
-        <div
-            class="grid min-h-0 grow grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] xl:gap-6 xl:overflow-hidden">
+        <div class="grid min-h-0 grow grid-cols-1 gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(22rem,2fr)] xl:gap-6 xl:overflow-hidden">
             <!-- Left Side: Dropzone & Settings -->
-            <div class="flex min-h-0 flex-col gap-4 xl:overflow-y-auto xl:pr-1">
+            <div class="flex min-h-0 flex-col gap-3 xl:overflow-y-auto xl:pr-1">
 
                 <!-- Tab Navigation -->
                 <div role="tablist" class="tabs tabs-box w-fit">
