@@ -424,11 +424,14 @@
                                     <div class="form-control w-full">
                                         <div class="flex justify-between items-center mb-2">
                                             <span class="label-text font-medium text-base-content">CRF (Quality)</span>
-                                            <span class="badge badge-ghost font-mono tabular-nums">{{ (datas as any)[`Hls${res}Crf`] }}</span>
+                                            <span class="badge badge-ghost font-mono tabular-nums">{{ (datas as any)[`Hls${res}Crf`] || 23 }}</span>
                                         </div>
-                                        <input :value="(datas as any)[`Hls${res}Crf`]"
-                                               @input="e => (datas as any)[`Hls${res}Crf`] = (e.target as HTMLInputElement).value"
-                                               type="range" min="0" max="51" class="range range-primary range-sm" />
+                                        
+                                        <!-- Using the neat functions prevents template parser compilation bugs -->
+                                        <input :value="getCrfIndex(res)"
+                                            @input="e => setCrfValue(res, (e.target as HTMLInputElement).value)"
+                                            type="range" min="0" max="4" step="1" class="range range-primary range-sm w-full" />
+                                            
                                         <div class="w-full flex justify-between text-xs px-1 mt-2 font-medium text-base-content/60">
                                             <span>0 (Lossless)</span>
                                             <span>18 (High)</span>
@@ -1022,6 +1025,33 @@ function updateBool(key: keyof ConfigResponse, event: Event) {
         (datas.value as any)[key] = (event.target as HTMLInputElement).checked ? 'true' : 'false';
     }
 }
+
+// Define the 5 discrete steps you want to map
+const crfSteps = "0,18,23,28,51".split(",").map(Number);
+
+// Returns the 0-4 slider index based on the actual CRF value
+const getCrfIndex = (res: string) => {
+  // If your script uses a ref, keep datas.value. If it's a plain object, change to datas
+  const targetData = (datas as any).value ? (datas as any).value : datas;
+  const currentVal = Number(targetData[`Hls${res}Crf`]);
+  const index = crfSteps.indexOf(currentVal);
+  return index !== -1 ? index : 2; // Default to index 2 (CRF 23) if not found
+};
+
+// Sets the actual CRF value from the steps array using the 0-4 slider index
+const setCrfValue = (res: string, indexValue: string) => {
+  const targetData = (datas as any).value ? (datas as any).value : datas;
+  const index = Number(indexValue);
+  
+  // 1. Fetch the value safely
+  const selectedCrf = crfSteps[index];
+  
+  // 2. Fallback to 23 if undefined to satisfy TypeScript
+  const finalCrfNum = selectedCrf !== undefined ? selectedCrf : 23;
+  
+  // 3. 🚀 CRITICAL: Convert the integer to a strict String to match the backend expectation
+  targetData[`Hls${res}Crf`] = String(finalCrfNum);
+};
 
 interface PgsConnectionResponse {
     ok: boolean
