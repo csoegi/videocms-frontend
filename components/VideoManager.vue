@@ -1610,8 +1610,8 @@ const exportActiveTab = ref(0);
 // Export Config
 const exportSeparatorMode = ref('\n');
 const exportSeparatorCustom = ref('');
-const exportIframeWidth = ref(560);
-const exportIframeHeight = ref(315);
+const exportIframeWidth = ref('100%');
+const exportIframeHeight = ref('100%');
 const exportIframeAutoplay = ref(false);
 const exportIframeControls = ref(true);
 
