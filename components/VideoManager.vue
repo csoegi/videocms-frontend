@@ -130,6 +130,9 @@
                                             <Icon :name="sortIcon('name')" class="h-3 w-3" />
                                         </button>
                                     </th>
+                                    <th class="video-manager-secondary-column w-32 font-medium">
+                                        Publish status
+                                    </th>
                                     <th class="video-manager-secondary-column w-24 font-medium">
                                         <button @click="toggleSort('duration')"
                                             class="flex items-center gap-1 transition-colors hover:text-base-content"
@@ -160,7 +163,7 @@
                             <tbody>
                                 <!-- Search Empty State -->
                                 <tr v-if="searchQuery && searchResults.length === 0 && !isLoading">
-                                    <td colspan="6">
+                                    <td colspan="7">
                                         <div class="flex flex-col items-center justify-center gap-1 py-16 text-center">
                                             <Icon name="lucide:search-x" class="h-6 w-6 text-base-content/30" />
                                             <p class="text-sm font-medium">No results for “{{ searchQuery }}”</p>
@@ -171,7 +174,7 @@
 
                                 <!-- Empty State -->
                                 <tr v-else-if="!searchQuery && listPaginationItems().folders.length === 0 && listPaginationItems().files.length === 0">
-                                    <td colspan="6">
+                                    <td colspan="7">
                                         <div class="flex flex-col items-center justify-center gap-1 py-16 text-center">
                                             <Icon name="lucide:folder-open" class="h-6 w-6 text-base-content/30" />
                                             <p class="text-sm font-medium">This folder is empty</p>
@@ -206,7 +209,7 @@
                                             <span class="truncate">{{ folder.Name }}</span>
                                         </button>
                                     </td>
-                                    <td class="video-manager-secondary-column" colspan="3"></td>
+                                    <td class="video-manager-secondary-column" colspan="4"></td>
                                     <td class="text-right">
                                         <div class="dropdown dropdown-end" v-if="canManage">
                                             <label tabindex="0"
@@ -261,6 +264,29 @@
                                                 </span>
                                             </span>
                                         </button>
+                                    </td>
+                                    <td class="video-manager-secondary-column whitespace-nowrap">
+                                        <span v-if="publicationStatus(file) === 'ready'"
+                                            class="badge badge-sm gap-1 border border-success/30 bg-success/10 text-success">
+                                            <Icon name="lucide:check-circle-2" class="h-3.5 w-3.5" />
+                                            Ready
+                                        </span>
+                                        <span v-else-if="publicationStatus(file) === 'processing'"
+                                            class="badge badge-sm gap-1 border border-warning/30 bg-warning/10 text-warning">
+                                            <Icon name="lucide:clock-3" class="h-3.5 w-3.5" />
+                                            Processing
+                                        </span>
+                                        <span v-else-if="publicationStatus(file) === 'failed'"
+                                            class="badge badge-sm gap-1 border border-error/30 bg-error/10 text-error"
+                                            title="Encoding or publishing failed">
+                                            <Icon name="lucide:alert-circle" class="h-3.5 w-3.5" />
+                                            Failed
+                                        </span>
+                                        <span v-else class="badge badge-sm gap-1 border-base-300 bg-base-200 text-base-content/60"
+                                            title="No publication status is available for this file">
+                                            <Icon name="lucide:minus-circle" class="h-3.5 w-3.5" />
+                                            Unknown
+                                        </span>
                                     </td>
                                     <td
                                         class="video-manager-secondary-column text-sm tabular-nums whitespace-nowrap text-base-content/70">
@@ -1018,8 +1044,18 @@ interface FileListItem {
     Duration?: number;
     Thumbnail?: string;
     Processing?: boolean;
+    PublicationStatus?: string;
     checked?: boolean;
 }
+type NormalizedPublicationStatus = 'ready' | 'processing' | 'failed' | 'unknown';
+const publicationStatus = (file: FileListItem): NormalizedPublicationStatus => {
+    // Older backend responses may not include PublicationStatus yet.
+    if (file.Processing) return 'processing';
+    const status = file.PublicationStatus?.toLowerCase();
+    return status === 'ready' || status === 'processing' || status === 'failed'
+        ? status
+        : 'unknown';
+};
 const fileList = useState<Array<FileListItem>>("fileList", () => ([]));
 const listFiles = async (folderId: number) => {
     try {
@@ -1166,8 +1202,14 @@ const trackFileInfo = setInterval(async () => {
 // folder so the processing badges resolve without user interaction.
 // Selection state is preserved across refreshes.
 const trackProcessing = setInterval(async () => {
-    if (searchQuery.value) return;
-    if (!fileList.value.some((f) => f.Processing)) return;
+    // Keep status chips current while encoding or publication is in progress.
+    // Search results use the same API status but need their own refresh path.
+    if (searchQuery.value) {
+        if (!searchResults.value.some((f) => f.Processing || publicationStatus(f) === 'processing')) return;
+        await performSearch(searchQuery.value);
+        return;
+    }
+    if (!fileList.value.some((f) => f.Processing || publicationStatus(f) === 'processing')) return;
     const newFiles = await listFiles(activeFolderID.value);
     if (!newFiles) return;
     const checkedByID = new Map(fileList.value.map((f) => [f.ID, f.checked]));

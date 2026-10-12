@@ -73,6 +73,30 @@
         <div class="min-h-0 flex-1 overflow-y-auto border-t border-base-300">
             <dl class="divide-y divide-base-300/60 px-4 text-sm">
                 <div class="flex items-center justify-between py-2.5">
+                    <dt class="text-base-content/60">Publish status</dt>
+                    <dd>
+                        <span v-if="publicationStatus === 'ready'" class="badge badge-sm gap-1 border border-success/30 bg-success/10 text-success">
+                            <Icon name="lucide:check-circle-2" class="h-3.5 w-3.5" />
+                            Ready
+                        </span>
+
+                        <span v-else-if="publicationStatus === 'processing'" class="badge badge-sm gap-1 border border-warning/30 bg-warning/10 text-warning">
+                            <Icon name="lucide:clock-3" class="h-3.5 w-3.5" />
+                            Processing
+                        </span>
+
+                        <span v-else-if="publicationStatus === 'failed'" class="badge badge-sm gap-1 border border-error/30 bg-error/10 text-error">
+                            <Icon name="lucide:alert-circle" class="h-3.5 w-3.5" />
+                            Failed
+                        </span>
+
+                        <span v-else class="badge badge-sm gap-1 border-base-300 bg-base-200 text-base-content/60">
+                            <Icon name="lucide:minus-circle" class="h-3.5 w-3.5" />
+                            Unknown
+                        </span>
+                    </dd>
+                </div>
+                <div class="flex items-center justify-between py-2.5">
                     <dt class="text-base-content/60">Size</dt>
                     <dd class="tabular-nums">{{ fileInfo ? humanFileSize(fileInfo.Size) : "0 B" }}</dd>
                 </div>
@@ -220,6 +244,8 @@ interface FileListItem {
     Name: string;
     UUID: string;
     ParentFolderID: number;
+    Processing?: boolean;
+    PublicationStatus?: string;
     checked?: boolean;
 }
 
@@ -301,6 +327,30 @@ const emit = defineEmits<{
 const contextFile = computed(() => {
     if (!props.fileInfo?.UUID) return undefined;
     return props.resolveContextFile(props.fileInfo.UUID);
+});
+type NormalizedPublicationStatus =
+    | "ready"
+    | "processing"
+    | "failed"
+    | "unknown";
+
+const publicationStatus = computed<NormalizedPublicationStatus>(() => {
+    const file = contextFile.value;
+
+    if (!file) return "unknown";
+    if (file.Processing) return "processing";
+
+    const status = file.PublicationStatus?.toLowerCase();
+
+    if (
+        status === "ready" ||
+        status === "processing" ||
+        status === "failed"
+    ) {
+        return status;
+    }
+
+    return "unknown";
 });
 const playerUrl = computed(() => {
     if (!props.fileInfo?.UUID) return undefined;
