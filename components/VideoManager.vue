@@ -131,7 +131,7 @@
                                         </button>
                                     </th>
                                     <th class="video-manager-secondary-column w-32 font-medium">
-                                        Publish status
+                                        Status
                                     </th>
                                     <th class="video-manager-secondary-column w-24 font-medium">
                                         <button @click="toggleSort('duration')"

@@ -73,7 +73,7 @@
         <div class="min-h-0 flex-1 overflow-y-auto border-t border-base-300">
             <dl class="divide-y divide-base-300/60 px-4 text-sm">
                 <div class="flex items-center justify-between py-2.5">
-                    <dt class="text-base-content/60">Publish status</dt>
+                    <dt class="text-base-content/60">Status</dt>
                     <dd>
                         <span v-if="publicationStatus === 'ready'" class="badge badge-sm gap-1 border border-success/30 bg-success/10 text-success">
                             <Icon name="lucide:check-circle-2" class="h-3.5 w-3.5" />
