@@ -82,6 +82,7 @@ interface UploadSpeedSample {
 }
 
 const allowed_extensions = [
+    "m3u8",
     "mp4",
     "mkv",
     "webm",
