@@ -18,6 +18,7 @@
 <script lang="ts" setup>
 definePageMeta({
     layout: "default",
+    robots: 'noindex, nofollow'
 });
 
 const conf = useRuntimeConfig();

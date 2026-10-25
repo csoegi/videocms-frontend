@@ -1,8 +1,8 @@
 <template>
+    <!--
     <footer class="border-t border-base-300 bg-base-100 text-base-content">
-        <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 gap-10 md:grid-cols-4">
-                <!-- Brand Section -->
+        <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">            
+            <div class="grid grid-cols-1 gap-10 md:grid-cols-4">                
                 <div class="md:col-span-2">
                     <span class="flex items-center gap-2.5 text-base font-semibold tracking-tight">
                         <img src="/logo.png" alt="" class="h-7 w-7 object-contain" />
@@ -19,7 +19,6 @@
                     </div>
                 </div>
 
-                <!-- Product Links -->
                 <div>
                     <h3 class="mb-3 text-sm font-semibold">Product</h3>
                     <ul class="flex flex-col gap-2 text-sm">
@@ -29,7 +28,6 @@
                     </ul>
                 </div>
 
-                <!-- Legal/Pages -->
                 <div v-if="footerPages.length > 0">
                     <h3 class="mb-3 text-sm font-semibold">Pages</h3>
                     <ul class="flex flex-col gap-2 text-sm">
@@ -39,15 +37,15 @@
                             </nuxt-link>
                         </li>
                     </ul>
-                </div>
+                </div> 
             </div>
-
+            
             <div class="mt-10 flex flex-col items-start justify-between gap-2 border-t border-base-300 pt-6 text-sm text-base-content/60 md:flex-row md:items-center">
                 <p>&copy; {{ new Date().getFullYear() }} {{ serverConfig.AppName || 'VideoCMS' }}</p>
-                <p>Free and open source, AGPL-3.0</p>
-            </div>
+            </div>            
         </div>
     </footer>
+    -->
 </template>
 
 <script lang="ts" setup>

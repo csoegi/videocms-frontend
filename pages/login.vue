@@ -69,6 +69,10 @@ const serverConf = useServerConfig()
 const token = useToken();
 const router = useRouter();
 
+definePageMeta({
+  robots: 'noindex, nofollow'
+})
+
 // Redirect if already logged in
 if (token.value) {
     router.push("/my");

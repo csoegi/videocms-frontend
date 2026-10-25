@@ -10,8 +10,8 @@
 
             <!-- Desktop Menu -->
             <div class="hidden flex-none items-center gap-1 md:flex">
-                <nuxtLink to="/" class="btn btn-ghost btn-sm font-medium">Home</nuxtLink>
-                <a href="https://videocms-docs.vercel.app/" target="_blank" class="btn btn-ghost btn-sm font-medium">Docs</a>
+                <!-- <nuxtLink to="/" class="btn btn-ghost btn-sm font-medium">Home</nuxtLink>
+                <a href="https://videocms-docs.vercel.app/" target="_blank" class="btn btn-ghost btn-sm font-medium">Docs</a> -->
                 <nuxtLink v-if="token" to="/my" class="btn btn-ghost btn-sm font-medium">Panel</nuxtLink>
 
                 <ThemeToggle class="ml-1" />
