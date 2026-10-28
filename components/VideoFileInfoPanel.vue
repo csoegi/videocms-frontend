@@ -207,8 +207,9 @@
                                 :key="`${qualityType}-${q.Name}-${q.Width}-${q.Height}`"
                                 class="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-base-300/40 py-1 last:border-0"
                             >
-                                <span class="min-w-0 flex-1 truncate">{{ q.Name }}</span>
+                                <span class="min-w-0 flex-1 truncate" :title="q.Name">{{ q.Name.length > 60 ? q.Name.slice(0, 57) + '…' : q.Name }}</span>
                                 <div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                                    <span class="badge badge-outline badge-xs uppercase">{{ q.Type || 'unknown' }}</span>
                                     <span class="badge badge-ghost badge-xs tabular-nums">{{ q.Width }}x{{ q.Height }}</span>
                                     <span class="badge badge-ghost badge-xs tabular-nums">{{ humanFileSize(q.Size) }}</span>
                                     <div class="tooltip tooltip-left" :data-tip="q.Ready ? 'Ready' : 'Processing'">
