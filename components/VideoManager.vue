@@ -244,7 +244,9 @@
                                     <td class="w-full">
                                         <button
                                             @click="openFileInfo(file.ID)"
-                                            class="flex w-full items-center gap-3 text-left font-medium transition-colors group-hover:text-primary">
+                                            :disabled="file.Processing"
+                                            :title="file.Processing ? 'Video details are locked while conversion is processing' : undefined"
+                                            class="flex w-full items-center gap-3 text-left font-medium transition-colors group-hover:text-primary disabled:cursor-not-allowed disabled:opacity-80">
                                             <span
                                                 class="relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-selector bg-base-200">
                                                 <Icon name="lucide:film" class="h-4 w-4 text-base-content/40" />
