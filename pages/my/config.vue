@@ -497,9 +497,10 @@
                             </div>
                         </div>
 
-                        <div class="card border border-base-300 bg-base-100">
-                            <div class="card-body">
-                                <h3 class="card-title text-base mb-4">HLS Converter</h3>
+                        <div class="flex min-w-0 flex-col gap-8">
+                            <div class="card min-w-0 border border-base-300 bg-base-100">
+                                <div class="card-body min-w-0">
+                                    <h3 class="card-title text-base mb-4">HLS Converter</h3>
                                 <div class="flex flex-col gap-4">
                                     <div class="form-control w-full">
                                         <label class="label"><span class="label-text font-medium text-base-content">Converter Interval (minutes)</span></label>
@@ -512,21 +513,20 @@
                                         <label class="label"><span class="label-text-alt whitespace-normal">Maximum legacy videos to package in each cycle. Jobs run sequentially and yield to normal encoding.</span></label>
                                     </div>
                                     <div class="form-control w-full">
-                                        <label class="label w-full cursor-pointer justify-between gap-4">
-                                            <span class="flex flex-col">
+                                        <label class="label w-full min-w-0 cursor-pointer items-start justify-between gap-3 whitespace-normal">
+                                            <span class="flex min-w-0 flex-1 flex-col gap-1">
                                                 <span class="label-text font-medium text-base-content">Delete Original Videos</span>
-                                                <span class="text-xs opacity-70">Cleanup-only mode: stop conversions and remove originals only when a successful HLS conversion is logged and all segments validate.</span>
+                                                <span class="break-words text-xs leading-relaxed opacity-70">Cleanup-only mode: stop conversions and remove originals only when a successful HLS conversion is logged and all segments validate.</span>
                                             </span>
-                                            <input type="checkbox" class="toggle toggle-primary shrink-0" :checked="String(datas.HLSConverterDeleteOrginal) === 'true'" @change="updateBool('HLSConverterDeleteOrginal', $event)" />
+                                            <input type="checkbox" class="toggle toggle-primary mt-1 shrink-0" :checked="String(datas.HLSConverterDeleteOrginal) === 'true'" @change="updateBool('HLSConverterDeleteOrginal', $event)" />
                                         </label>
                                     </div>
                                 </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="card border border-base-300 bg-base-100">
-                            <div class="card-body">
-                                <h3 class="card-title text-base mb-4">Limits & Sizes</h3>
+                            <div class="card min-w-0 border border-base-300 bg-base-100">
+                                <div class="card-body min-w-0">
+                                    <h3 class="card-title text-base mb-4">Limits & Sizes</h3>
 
                                 <!-- Byte Input: Max Upload Filesize -->
                                 <ByteInput v-model="datas.MaxUploadFilesize" label="Max Upload Filesize" />
@@ -535,9 +535,10 @@
                                 <ByteInput v-model="datas.MaxUploadChunkSize" label="Max Upload Chunk Size"
                                            hint="Must match proxy limits (e.g. Cloudflare 100MB)" />
 
-                                <!-- Byte Input: Max Post Size -->
-                                <ByteInput v-model="datas.MaxPostSize" label="Max Post Size"
-                                           hint="Should be larger than chunk size" />
+                                    <!-- Byte Input: Max Post Size -->
+                                    <ByteInput v-model="datas.MaxPostSize" label="Max Post Size"
+                                               hint="Should be larger than chunk size" />
+                                </div>
                             </div>
                         </div>
                     </div>
