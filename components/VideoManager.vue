@@ -130,6 +130,9 @@
                                             <Icon :name="sortIcon('name')" class="h-3 w-3" />
                                         </button>
                                     </th>
+                                    <th class="video-manager-secondary-column w-24 font-medium">
+                                        Type
+                                    </th>
                                     <th class="video-manager-secondary-column w-32 font-medium">
                                         Status
                                     </th>
@@ -163,7 +166,7 @@
                             <tbody>
                                 <!-- Search Empty State -->
                                 <tr v-if="searchQuery && searchResults.length === 0 && !isLoading">
-                                    <td colspan="7">
+                                    <td colspan="8">
                                         <div class="flex flex-col items-center justify-center gap-1 py-16 text-center">
                                             <Icon name="lucide:search-x" class="h-6 w-6 text-base-content/30" />
                                             <p class="text-sm font-medium">No results for “{{ searchQuery }}”</p>
@@ -174,7 +177,7 @@
 
                                 <!-- Empty State -->
                                 <tr v-else-if="!searchQuery && listPaginationItems().folders.length === 0 && listPaginationItems().files.length === 0">
-                                    <td colspan="7">
+                                    <td colspan="8">
                                         <div class="flex flex-col items-center justify-center gap-1 py-16 text-center">
                                             <Icon name="lucide:folder-open" class="h-6 w-6 text-base-content/30" />
                                             <p class="text-sm font-medium">This folder is empty</p>
@@ -209,7 +212,7 @@
                                             <span class="truncate">{{ folder.Name }}</span>
                                         </button>
                                     </td>
-                                    <td class="video-manager-secondary-column" colspan="4"></td>
+                                    <td class="video-manager-secondary-column" colspan="5"></td>
                                     <td class="text-right">
                                         <div class="dropdown dropdown-end" v-if="canManage">
                                             <label tabindex="0"
@@ -269,7 +272,17 @@
                                         </button>
                                     </td>
                                     <td class="video-manager-secondary-column whitespace-nowrap">
-                                        <div class="flex flex-wrap items-center gap-1.5">
+                                        <div class="flex items-center gap-1 whitespace-nowrap">
+                                            <span
+                                                v-for="kind in (file.VideoTypes || [])"
+                                                :key="kind"
+                                                class="badge badge-sm badge-outline uppercase"
+                                                :title="`Video type: ${kind}`">{{ kind }}</span>
+                                            <span v-if="!(file.VideoTypes || []).length" class="text-base-content/40">—</span>
+                                        </div>
+                                    </td>
+                                    <td class="video-manager-secondary-column whitespace-nowrap">
+                                        <div class="flex items-center gap-1.5">
                                         <span v-if="publicationStatus(file) === 'ready'"
                                             class="badge badge-sm gap-1 border border-success/30 bg-success/10 text-success">
                                             <Icon name="lucide:check-circle-2" class="h-3.5 w-3.5" />
@@ -291,9 +304,6 @@
                                             <Icon name="lucide:minus-circle" class="h-3.5 w-3.5" />
                                             Unknown
                                         </span>
-                                        <span v-for="kind in (file.VideoTypes || [])" :key="kind"
-                                            class="badge badge-sm badge-outline uppercase"
-                                            :title="`Video type: ${kind}`">{{ kind }}</span>
                                         </div>
                                     </td>
                                     <td
