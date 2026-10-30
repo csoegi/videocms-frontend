@@ -191,7 +191,7 @@
                                 <!-- Folders -->
                                 <tr v-for="folder in listPaginationItems().folders" :key="'folder-' + folder.ID"
                                     class="group border-base-300 hover:bg-base-200/60"
-                                    :draggable="canManage"
+                                    :draggable="canManage && !file.Processing"
                                     @dragstart="canManage && handleDragStart($event, 'folder', folder)"
                                     @dragover="canManage && handleDragOver($event, folder.ID)"
                                     @dragleave="canManage && (dragTargetId = null)"
@@ -241,12 +241,15 @@
                                     @dragstart="canManage && handleDragStart($event, 'file', file)">
                                     <td class="w-12">
                                         <input v-model="file.checked" @change="globalCheckboxChecked = false" type="checkbox"
-                                            class="checkbox checkbox-sm" :aria-label="`Select ${file.Name}`" />
+                                            class="checkbox checkbox-sm" :aria-label="`Select ${file.Name}`"
+                                            :disabled="isLoading || file.Processing" :title="file.Processing ? 'Cannot select a video while it is processing' : undefined" />
                                     </td>
                                     <td class="w-full">
                                         <button
                                             @click="openFileInfo(file.ID)"
-                                            class="flex w-full items-center gap-3 text-left font-medium transition-colors group-hover:text-primary">
+                                            :disabled="file.Processing"
+                                            :title="file.Processing ? 'Video details are locked while conversion is processing' : undefined"
+                                            class="flex w-full items-center gap-3 text-left font-medium transition-colors group-hover:text-primary disabled:cursor-not-allowed disabled:opacity-80">
                                             <span
                                                 class="relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-selector bg-base-200">
                                                 <Icon name="lucide:film" class="h-4 w-4 text-base-content/40" />
@@ -259,7 +262,7 @@
                                                     @error="($event.target as HTMLImageElement).remove()" />
                                             </span>
                                             <span class="flex min-w-0 flex-col">
-                                                <span class="truncate">{{ file.Name }}</span>
+                                                <span class="truncate" :title="file.Name">{{ file.Name.length > 60 ? file.Name.slice(0, 57) + '…' : file.Name }}</span>
                                                 <span v-if="file.Processing"
                                                     class="flex items-center gap-1 text-xs font-normal text-warning">
                                                     <span class="loading loading-spinner h-2.5 w-2.5"></span>
@@ -271,36 +274,37 @@
                                     <td class="video-manager-secondary-column whitespace-nowrap">
                                         <div class="flex items-center gap-1 whitespace-nowrap">
                                             <span
-                                                v-for="videoType in (file.VideoTypes ?? [])"
-                                                :key="videoType"
-                                                class="badge badge-sm border border-base-content/30 bg-base-100 text-base-content">
-                                                {{ videoType }}
-                                            </span>
-                                            <span v-if="!file.VideoTypes?.length" class="text-base-content/40">—</span>
+                                                v-for="kind in (file.VideoTypes || [])"
+                                                :key="kind"
+                                                 class="badge badge-ghost badge-sm font-bold uppercase tabular-nums tracking-wider px-1.5 text-base-content/70"
+                                                :title="`Video type: ${kind}`">{{ kind }}</span>
+                                            <span v-if="!(file.VideoTypes || []).length" class="text-base-content/40">—</span>
                                         </div>
                                     </td>
                                     <td class="video-manager-secondary-column whitespace-nowrap">
+                                        <div class="flex items-center gap-1.5">
                                         <span v-if="publicationStatus(file) === 'ready'"
-                                            class="badge badge-sm gap-1 border border-success/30 bg-success/10 text-success">
+                                            class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-success/30 bg-success/10 text-success">
                                             <Icon name="lucide:check-circle-2" class="h-3.5 w-3.5" />
                                             Ready
                                         </span>
                                         <span v-else-if="publicationStatus(file) === 'processing'"
-                                            class="badge badge-sm gap-1 border border-warning/30 bg-warning/10 text-warning">
+                                            class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-warning/30 bg-warning/10 text-warning">
                                             <Icon name="lucide:clock-3" class="h-3.5 w-3.5" />
                                             Processing
                                         </span>
                                         <span v-else-if="publicationStatus(file) === 'failed'"
-                                            class="badge badge-sm gap-1 border border-error/30 bg-error/10 text-error"
+                                            class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-error/30 bg-error/10 text-error"
                                             title="Encoding or publishing failed">
                                             <Icon name="lucide:alert-circle" class="h-3.5 w-3.5" />
                                             Failed
                                         </span>
-                                        <span v-else class="badge badge-sm gap-1 border-base-300 bg-base-200 text-base-content/60"
+                                        <span v-else class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border-base-300 bg-base-200 text-base-content/70"
                                             title="No publication status is available for this file">
                                             <Icon name="lucide:minus-circle" class="h-3.5 w-3.5" />
                                             Unknown
                                         </span>
+                                        </div>
                                     </td>
                                     <td
                                         class="video-manager-secondary-column text-sm tabular-nums whitespace-nowrap text-base-content/70">
@@ -329,13 +333,13 @@
                                                 <li><a @click="openExport([file])">
                                                         <Icon name="lucide:share" class="h-4 w-4" /> Export
                                                     </a></li>
-                                                <li v-if="canManage"><a @click="openMoveFile(file.ID, file.Name)">
+                                                <li v-if="canManage && !file.Processing"><a @click="openMoveFile(file.ID, file.Name)">
                                                         <Icon name="lucide:folder-input" class="h-4 w-4" /> Move
                                                     </a></li>
-                                                <li v-if="canManage"><a @click="openRenameFile(file.ID, file.Name)">
+                                                <li v-if="canManage && !file.Processing"><a @click="openRenameFile(file.ID, file.Name)">
                                                         <Icon name="lucide:edit-2" class="h-4 w-4" /> Rename
                                                     </a></li>
-                                                <li v-if="canManage"><a @click="openDelete([file], [])"
+                                                <li v-if="canManage && !file.Processing"><a @click="openDelete([file], [])"
                                                         class="text-error hover:bg-error/10">
                                                         <Icon name="lucide:trash-2" class="h-4 w-4" /> Delete
                                                     </a></li>

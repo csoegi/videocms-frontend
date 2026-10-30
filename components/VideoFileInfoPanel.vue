@@ -75,22 +75,22 @@
                 <div class="flex items-center justify-between py-2.5">
                     <dt class="text-base-content/60">Status</dt>
                     <dd>
-                        <span v-if="publicationStatus === 'ready'" class="badge badge-sm gap-1 border border-success/30 bg-success/10 text-success">
+                        <span v-if="publicationStatus === 'ready'" class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-success/30 bg-success/10 text-success">
                             <Icon name="lucide:check-circle-2" class="h-3.5 w-3.5" />
                             Ready
                         </span>
 
-                        <span v-else-if="publicationStatus === 'processing'" class="badge badge-sm gap-1 border border-warning/30 bg-warning/10 text-warning">
+                        <span v-else-if="publicationStatus === 'processing'" class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-warning/30 bg-warning/10 text-warning">
                             <Icon name="lucide:clock-3" class="h-3.5 w-3.5" />
                             Processing
                         </span>
 
-                        <span v-else-if="publicationStatus === 'failed'" class="badge badge-sm gap-1 border border-error/30 bg-error/10 text-error">
+                        <span v-else-if="publicationStatus === 'failed'" class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-error/30 bg-error/10 text-error">
                             <Icon name="lucide:alert-circle" class="h-3.5 w-3.5" />
                             Failed
                         </span>
 
-                        <span v-else class="badge badge-sm gap-1 border-base-300 bg-base-200 text-base-content/60">
+                        <span v-else class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border-base-300 bg-base-200 text-base-content/60">
                             <Icon name="lucide:minus-circle" class="h-3.5 w-3.5" />
                             Unknown
                         </span>
@@ -201,14 +201,15 @@
                     </div>
                     <div class="collapse-content p-0 px-4 pb-2 text-xs">
                         <div v-for="qualityType in qualityTypes" :key="qualityType" class="mb-3 last:mb-0">
-                            <div class="mb-1 font-medium text-base-content/70">{{ qualityType }}</div>
+                            <!-- <div class="mb-1 font-medium text-base-content/70">{{ qualityType }}</div> -->
                             <div
                                 v-for="q in qualitiesByType(qualityType)"
                                 :key="`${qualityType}-${q.Name}-${q.Width}-${q.Height}`"
                                 class="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-base-300/40 py-1 last:border-0"
                             >
-                                <span class="min-w-0 flex-1 truncate">{{ q.Name }}</span>
+                                <span class="min-w-0 flex-1 truncate" :title="q.Name">{{ q.Name.length > 60 ? q.Name.slice(0, 57) + '…' : q.Name }}</span>
                                 <div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                                    <span class="badge badge-ghost badge-xs tabular-nums uppercase">{{ q.Type || 'unknown' }}</span>
                                     <span class="badge badge-ghost badge-xs tabular-nums">{{ q.Width }}x{{ q.Height }}</span>
                                     <span class="badge badge-ghost badge-xs tabular-nums">{{ humanFileSize(q.Size) }}</span>
                                     <div class="tooltip tooltip-left" :data-tip="q.Ready ? 'Ready' : 'Processing'">
