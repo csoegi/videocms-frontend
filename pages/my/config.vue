@@ -505,18 +505,18 @@
                                     <div class="form-control w-full">
                                         <label class="label"><span class="label-text font-medium text-base-content">Converter Interval (minutes)</span></label>
                                         <input :value="datas.HLSConverterIntervalMins" @input="e => datas.HLSConverterIntervalMins = (e.target as HTMLInputElement).value" type="number" class="input input-bordered w-full" min="0" />
-                                        <label class="label"><span class="label-text-alt whitespace-normal">How often the low-priority converter runs. Set to 0 to disable it.</span></label>
+                                        <label class="label"><span class="label-text-alt whitespace-normal">Convert MP4/MKV to HLS in background. Start with 30 mins or higher. Set to 0 to disable it.</span></label>
                                     </div>
                                     <div class="form-control w-full">
-                                        <label class="label"><span class="label-text font-medium text-base-content">Videos per cycle</span></label>
+                                        <label class="label"><span class="label-text font-medium text-base-content">Videos per Cycle</span></label>
                                         <input :value="datas.HLSConverterBatchSize" @input="e => datas.HLSConverterBatchSize = (e.target as HTMLInputElement).value" type="number" class="input input-bordered w-full" min="1" max="100" />
-                                        <label class="label"><span class="label-text-alt whitespace-normal">Maximum legacy videos to package in each cycle. Jobs run sequentially and yield to normal encoding.</span></label>
+                                        <label class="label"><span class="label-text-alt whitespace-normal">Maximum videos to process per cycle. Original video will be archived.</span></label>
                                     </div>
                                     <div class="form-control w-full">
                                         <label class="label w-full min-w-0 cursor-pointer items-start justify-between gap-3 whitespace-normal">
                                             <span class="flex min-w-0 flex-1 flex-col gap-1">
                                                 <span class="label-text font-medium text-base-content">Delete Original Videos</span>
-                                                <span class="break-words text-xs leading-relaxed opacity-70">Cleanup-only mode: stop conversions and remove originals only when a successful HLS conversion is logged and all segments validate.</span>
+                                                <span class="break-words text-xs leading-relaxed opacity-70">Remove originals from archive after a successful HLS conversion.</span>
                                             </span>
                                             <input type="checkbox" class="toggle toggle-primary mt-1 shrink-0" :checked="String(datas.HLSConverterDeleteOrginal) === 'true'" @change="updateBool('HLSConverterDeleteOrginal', $event)" />
                                         </label>
