@@ -276,7 +276,7 @@
                                             <span
                                                 v-for="kind in (file.VideoTypes || [])"
                                                 :key="kind"
-                                                class="badge badge-sm badge-outline uppercase"
+                                                 class="badge badge-ghost badge-sm font-bold uppercase tabular-nums tracking-wider px-1.5 text-base-content/70"
                                                 :title="`Video type: ${kind}`">{{ kind }}</span>
                                             <span v-if="!(file.VideoTypes || []).length" class="text-base-content/40">—</span>
                                         </div>
@@ -284,22 +284,22 @@
                                     <td class="video-manager-secondary-column whitespace-nowrap">
                                         <div class="flex items-center gap-1.5">
                                         <span v-if="publicationStatus(file) === 'ready'"
-                                            class="badge badge-sm gap-1 border border-success/30 bg-success/10 text-success">
+                                            class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-success/30 bg-success/10 text-success">
                                             <Icon name="lucide:check-circle-2" class="h-3.5 w-3.5" />
                                             Ready
                                         </span>
                                         <span v-else-if="publicationStatus(file) === 'processing'"
-                                            class="badge badge-sm gap-1 border border-warning/30 bg-warning/10 text-warning">
+                                            class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-warning/30 bg-warning/10 text-warning">
                                             <Icon name="lucide:clock-3" class="h-3.5 w-3.5" />
                                             Processing
                                         </span>
                                         <span v-else-if="publicationStatus(file) === 'failed'"
-                                            class="badge badge-sm gap-1 border border-error/30 bg-error/10 text-error"
+                                            class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border border-error/30 bg-error/10 text-error"
                                             title="Encoding or publishing failed">
                                             <Icon name="lucide:alert-circle" class="h-3.5 w-3.5" />
                                             Failed
                                         </span>
-                                        <span v-else class="badge badge-sm gap-1 border-base-300 bg-base-200 text-base-content/60"
+                                        <span v-else class="badge badge-sm font-bold gap-1 tracking-wider px-1.5 border-base-300 bg-base-200 text-base-content/70"
                                             title="No publication status is available for this file">
                                             <Icon name="lucide:minus-circle" class="h-3.5 w-3.5" />
                                             Unknown
