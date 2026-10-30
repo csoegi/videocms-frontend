@@ -191,7 +191,7 @@
                                 <!-- Folders -->
                                 <tr v-for="folder in listPaginationItems().folders" :key="'folder-' + folder.ID"
                                     class="group border-base-300 hover:bg-base-200/60"
-                                    :draggable="canManage && !file.Processing"
+                                    :draggable="canManage"
                                     @dragstart="canManage && handleDragStart($event, 'folder', folder)"
                                     @dragover="canManage && handleDragOver($event, folder.ID)"
                                     @dragleave="canManage && (dragTargetId = null)"
