@@ -666,5 +666,9 @@ function removeTrackFromItem(item: any, trackId: string) {
 function setSubtitleMode(item: QueueItem, mode: 'none' | 'soft' | 'hard') {
   markSubtitleConfigurationManual(item)
   item.subtitleMode = mode
+  if (mode === 'none') {
+    item.subtitleFiles = []
+    item.selectedSubForBurn = ''
+  }
 }
 </script>
