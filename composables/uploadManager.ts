@@ -214,6 +214,7 @@ const reconcileAutomaticSubtitlePairs = () => {
         if (!subtitle || !video) continue;
         video.subtitleFiles = [{ id: uuidv4(), file: subtitle.file, lang: "id" }];
         video.subtitleMode = "soft";
+        video.selectedSubForBurn = subtitle.file.name;
         video.subtitleAutoPaired = true;
         unmatched_subtitles.value = unmatched_subtitles.value.filter(item => item.id !== subtitle.id);
     }
