@@ -117,7 +117,7 @@
                             <p class="text-sm font-medium">
                                 <span class="text-primary">Click to upload</span> or drag and drop
                             </p>
-                            <p class="text-xs text-base-content/60">Video files (MP4, MKV, AVI, …)</p>
+                            <p class="text-xs text-base-content/60">Video files (MP4, MKV, AVI, …) and subtitles (SRT, VTT)</p>
                         </div>
                         <input @change="(e: any) => onAddFileToQueue(e.target.files)" id="upload_manager_input"
                             type="file" class="hidden" name="files[]" multiple />
