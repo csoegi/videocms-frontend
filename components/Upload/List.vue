@@ -57,6 +57,20 @@
 
             <!-- Queue List (Scrollable) -->
             <div class="flex-1 overflow-y-auto p-2">
+                <div v-if="source === 'local' && unmatchedSubtitles.length > 0" class="mb-2 flex flex-col gap-2">
+                    <div v-for="subtitle in unmatchedSubtitles" :key="subtitle.id"
+                        class="flex items-start gap-2 rounded-field border border-warning/40 bg-warning/5 p-2 text-xs">
+                        <Icon name="lucide:alert-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate font-medium" :title="subtitle.file.name">{{ subtitle.file.name }}</p>
+                            <p class="text-base-content/60">{{ subtitle.reason }} This file will be skipped.</p>
+                        </div>
+                        <button type="button" class="btn btn-ghost btn-xs" title="Remove subtitle"
+                            aria-label="Remove unmatched subtitle" @click="removeUnmatchedSubtitle(subtitle.id)">
+                            <Icon name="lucide:x" class="h-3 w-3" />
+                        </button>
+                    </div>
+                </div>
                 <!-- Local Queue -->
                 <div v-if="source === 'local'" class="h-full">
                     <div v-if="list.length === 0"
@@ -124,6 +138,12 @@
 
                             <!-- Subtitle Settings -->
                             <div class="mt-2 flex flex-col gap-1.5">
+                                <div v-if="item.subtitleAutoPaired && item.subtitleFiles?.length"
+                                    class="flex items-center gap-2 text-xs text-success">
+                                    <Icon name="lucide:captions" class="h-3.5 w-3.5 shrink-0" />
+                                    <span class="truncate">Auto-paired: {{ item.subtitleFiles[0].file.name }}</span>
+                                    <span class="shrink-0">· SOFT</span>
+                                </div>
                                 <button type="button" 
                                         class="btn btn-ghost btn-xs gap-1.5 justify-start text-primary w-fit font-semibold"
                                         @click="toggleSubDrawer(item.uuid)">
@@ -140,13 +160,13 @@
                                         <div class="join border border-base-300/80">
                                             <button type="button" class="btn btn-[10px] h-6 min-h-[24px] join-item px-2"
                                                     :class="item.subtitleMode === 'none' || !item.subtitleMode ? 'btn-primary font-bold' : 'btn-ghost'"
-                                                    @click="item.subtitleMode = 'none'">None</button>
+                                                    @click="setSubtitleMode(item, 'none')">None</button>
                                             <button type="button" class="btn btn-[10px] h-6 min-h-[24px] join-item px-2"
                                                     :class="item.subtitleMode === 'soft' ? 'btn-primary font-bold' : 'btn-ghost'"
-                                                    @click="item.subtitleMode = 'soft'">Soft</button>
+                                                    @click="setSubtitleMode(item, 'soft')">Soft</button>
                                             <button type="button" class="btn btn-[10px] h-6 min-h-[24px] join-item px-2"
                                                     :class="item.subtitleMode === 'hard' ? 'btn-primary font-bold' : 'btn-ghost'"
-                                                    @click="item.subtitleMode = 'hard'">Hard</button>
+                                                    @click="setSubtitleMode(item, 'hard')">Hard</button>
                                         </div>
                                     </div>
 
@@ -359,6 +379,9 @@ import {
     resetAllErroredUploadQueueItem,
     getUploadSpeed,
     getActiveUploadCount,
+    getUnmatchedSubtitles,
+    removeUnmatchedSubtitle,
+    markSubtitleConfigurationManual,
 } from "@/composables/uploadManager";
 import {
     useRemoteDownloads,
@@ -380,6 +403,7 @@ defineProps<{
 
 const conf = useRuntimeConfig();
 const list = getUploadQueue();
+const unmatchedSubtitles = getUnmatchedSubtitles();
 const isUploading = isUploadingState();
 const uploadSpeed = getUploadSpeed();
 const activeUploadCount = getActiveUploadCount();
@@ -613,6 +637,7 @@ function onAddTrackToItem(event: Event, item: any) {
   const target = event.target as HTMLInputElement
   if (!target || !target.files) return
 
+  markSubtitleConfigurationManual(item)
   if (!item.subtitleFiles) item.subtitleFiles = []
   if (!item.subtitleMode) item.subtitleMode = 'none'
 
@@ -633,7 +658,13 @@ function onAddTrackToItem(event: Event, item: any) {
 }
 
 function removeTrackFromItem(item: any, trackId: string) {
+  markSubtitleConfigurationManual(item)
   item.subtitleFiles = item.subtitleFiles.filter((s: any) => s.id !== trackId)
   if (item.subtitleFiles.length === 0) item.selectedSubForBurn = ''
+}
+
+function setSubtitleMode(item: QueueItem, mode: 'none' | 'soft' | 'hard') {
+  markSubtitleConfigurationManual(item)
+  item.subtitleMode = mode
 }
 </script>
