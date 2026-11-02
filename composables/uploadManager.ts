@@ -58,6 +58,8 @@ export interface QueueItem {
     subtitleMode?: 'none' | 'soft' | 'hard';
     selectedSubForBurn?: string;
     subtitleFiles?: Array<{ id: string; file: File; lang: string }>;
+    subtitleAutoPaired?: boolean;
+    subtitleManuallyConfigured?: boolean;
 }
 
 export interface QueueItemLog {
@@ -132,53 +134,125 @@ export const getUploadQueue = () => upload_queue;
 export const getUploadSpeed = () => upload_speed_state;
 export const getActiveUploadCount = () => active_upload_count_state;
 
+type UnmatchedSubtitle = { id: string; file: File; reason: string };
+const unmatched_subtitles = ref<UnmatchedSubtitle[]>([]);
+const automatic_pairing_open = ref(true);
+const automatic_subtitle_extensions = new Set(["srt", "vtt"]);
+
+export const getUnmatchedSubtitles = () => unmatched_subtitles;
+
+const fileExtension = (file: File) => file.name.split(".").pop()?.toLowerCase() ?? "";
+const subtitleMatchKey = (fileName: string) => {
+    const lastDot = fileName.lastIndexOf(".");
+    return (lastDot > 0 ? fileName.slice(0, lastDot) : fileName).trim().toUpperCase();
+};
+const isNoSubtitleVideo = (fileName: string) => /-NS$/i.test(subtitleMatchKey(fileName));
+
+const addVideoQueueItems = (
+    files: File[],
+    folderId: number,
+    subtitleMode: 'none' | 'soft' | 'hard' = 'none',
+    selectedSubForBurn = '',
+    subtitleFiles: Array<{ id: string; file: File; lang: string }> = []
+) => {
+    for (const file of files) {
+        const ext = fileExtension(file);
+        const uuid = uuidv4();
+        upload_queue.value.push({
+            uuid, size: file.size, file, name: file.name, folderId,
+            progress: 0, uploading: false, paused: false, fin: false,
+            bytesUploaded: 0, bytesTotal: file.size, speedBytesPerSecond: 0,
+            uploadSpeedSamples: [], log: [],
+            subtitleMode, selectedSubForBurn, subtitleFiles: [...subtitleFiles],
+            subtitleAutoPaired: false, subtitleManuallyConfigured: subtitleFiles.length > 0,
+        });
+
+        if (!allowed_extensions.includes(ext)) {
+            addLogToFile(uuid, {
+                level: "error",
+                title: "Not allowed file extension",
+                description: `The file extension "${ext}" is not allowed/supported`,
+            }, true);
+        }
+        if (isFileTooLarge(file.size)) addLogToFile(uuid, fileTooLargeLog(file.size), true);
+    }
+};
+
+const reconcileAutomaticSubtitlePairs = () => {
+    if (!automatic_pairing_open.value) return;
+
+    const eligibleVideos = upload_queue.value.filter(item =>
+        !item.deleted && !item.fin && !item.uploading && !item.errored &&
+        !item.preflighting && !item.subtitleManuallyConfigured &&
+        (!item.subtitleFiles || item.subtitleFiles.length === 0) &&
+        !isNoSubtitleVideo(item.name)
+    );
+    const videoGroups = new Map<string, QueueItem[]>();
+    for (const video of eligibleVideos) {
+        const key = subtitleMatchKey(video.name);
+        videoGroups.set(key, [...(videoGroups.get(key) ?? []), video]);
+    }
+
+    const subtitleGroups = new Map<string, UnmatchedSubtitle[]>();
+    for (const subtitle of unmatched_subtitles.value) {
+        const key = subtitleMatchKey(subtitle.file.name);
+        subtitleGroups.set(key, [...(subtitleGroups.get(key) ?? []), subtitle]);
+    }
+
+    for (const [key, subtitles] of subtitleGroups) {
+        const videos = videoGroups.get(key) ?? [];
+        if (subtitles.length !== 1 || videos.length !== 1) {
+            const reason = videos.length > 1 || subtitles.length > 1
+                ? "Multiple files share this name; pair manually to avoid ambiguity."
+                : "No matching video found in this upload session.";
+            for (const subtitle of subtitles) subtitle.reason = reason;
+            continue;
+        }
+
+        const [subtitle] = subtitles;
+        const [video] = videos;
+        if (!subtitle || !video) continue;
+        video.subtitleFiles = [{ id: uuidv4(), file: subtitle.file, lang: "id" }];
+        video.subtitleMode = "soft";
+        video.subtitleAutoPaired = true;
+        unmatched_subtitles.value = unmatched_subtitles.value.filter(item => item.id !== subtitle.id);
+    }
+};
+
+export const removeUnmatchedSubtitle = (id: string) => {
+    unmatched_subtitles.value = unmatched_subtitles.value.filter(item => item.id !== id);
+};
+
+export const markSubtitleConfigurationManual = (item: QueueItem) => {
+    item.subtitleManuallyConfigured = true;
+    item.subtitleAutoPaired = false;
+};
+
 export const addToUploadQueue = (
-    files: FileList, 
+    files: FileList,
     folderId = 0,
     subtitleMode: 'none' | 'soft' | 'hard' = 'none',
     selectedSubForBurn: string = '',
     subtitleFiles: Array<{ id: string; file: File; lang: string }> = []
 ) => {
-    for (const file of files) {
-        const ext = file.name.split(".").pop() ?? "";
-        const uuid = uuidv4();
-
-        upload_queue.value.push({
-            uuid,
-            size: file.size,
-            file,
-            name: file.name,
-            folderId,
-            progress: 0,
-            uploading: false,
-            paused: false,
-            fin: false,
-            bytesUploaded: 0,
-            bytesTotal: file.size,
-            speedBytesPerSecond: 0,
-            uploadSpeedSamples: [],
-            log: [],
-            // 💡 NEW SUBTITLE TRACK SELECTIONS MAP KEYS
-            subtitleMode: subtitleMode,
-            selectedSubForBurn: selectedSubForBurn,
-            subtitleFiles: [...subtitleFiles] // Safely maps a shallow copy of attached tracks
-        });
-
-        if (!allowed_extensions.includes(ext.toLowerCase())) {
-            addLogToFile(
-                uuid,
-                {
-                    level: "error",
-                    title: "Not allowed file extension",
-                    description: `The file extension "${ext}" is not allowed/supported`,
-                },
-                true,
-            );
-        }
-        if (isFileTooLarge(file.size)) {
-            addLogToFile(uuid, fileTooLargeLog(file.size), true);
+    const videosAndOtherFiles: File[] = [];
+    for (const file of Array.from(files)) {
+        const ext = fileExtension(file);
+        if (automatic_subtitle_extensions.has(ext)) {
+            unmatched_subtitles.value.push({
+                id: uuidv4(),
+                file,
+                reason: automatic_pairing_open.value
+                    ? "No matching video found in this upload session."
+                    : "Automatic pairing is closed because uploading has started.",
+            });
+        } else {
+            videosAndOtherFiles.push(file);
         }
     }
+
+    addVideoQueueItems(videosAndOtherFiles, folderId, subtitleMode, selectedSubForBurn, subtitleFiles);
+    reconcileAutomaticSubtitlePairs();
     updateProgressState();
     updateUploadSpeedState();
 };
@@ -186,6 +260,7 @@ export const addToUploadQueue = (
 export const startUploadQueue = () => {
     if (is_uploading_state.value) return;
 
+    automatic_pairing_open.value = false;
     stopUploadWorker();
     paused_state.value = false;
     is_uploading_state.value = true;
