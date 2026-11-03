@@ -92,6 +92,7 @@ function resetForm(type = 'video') {
 
 // We store the full settings object here
 const fullSettings = ref(null);
+const settingsLoaded = ref(false);
 
 async function load() {
     try {
@@ -109,7 +110,9 @@ async function load() {
         fullSettings.value = accountData?.Admin
             ? await $fetch(`${conf.public.apiUrl}/settings`, { headers })
             : null;
+        settingsLoaded.value = true;
     } catch (e: any) {
+        settingsLoaded.value = true;
         errors.value = "Failed to load data.";
     }
 }
@@ -280,7 +283,7 @@ onMounted(load);
         </div>
 
         <!-- Optional: Show a placeholder while loading -->
-        <div v-else class="h-16 flex items-center justify-center opacity-30">
+        <div v-else-if="!settingsLoaded" class="h-16 flex items-center justify-center opacity-30">
             <span class="loading loading-dots loading-sm"></span>
         </div>
 
@@ -303,7 +306,7 @@ onMounted(load);
                     </div>
                     <div class="stat-title">Total Inventory</div>
                     <div class="stat-value text-secondary">{{ ads.length }}</div>
-                    <div class="stat-desc">Combined video and banners</div>
+                    <div class="stat-desc">Player and page-level advertisements</div>
                 </div>
             </div>
         </div>
