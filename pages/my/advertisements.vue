@@ -84,8 +84,9 @@ function openEdit(ad: any) {
 // Reset form to defaults
 function resetForm(type = 'video') {
     form.value = {
-        ID: 0, AdsName: '', AdsType: type, AdsLink: '',
-        AdsDisplay: type === 'script' ? '' : 'before_start',
+        ID: 0, AdsName: '', AdsType: type === 'script' ? 'script' : 'video', AdsLink: '',
+        // The API requires AdsDisplay for every advertisement, including scripts.
+        AdsDisplay: 'before_start',
         AdsDevice: 'all', AdsPriority: 0, IsActive: true
     };
 }
@@ -153,7 +154,8 @@ async function saveAd() {
         ads_name:     form.value.AdsName,
         ads_type:     form.value.AdsType,
         ads_link:     form.value.AdsLink,
-        ads_display:  form.value.AdsDisplay,
+        // The API validates AdsDisplay as required even for script ads.
+        ads_display:  form.value.AdsType === 'script' ? 'before_start' : (form.value.AdsDisplay || 'before_start'),
         ads_device:   form.value.AdsDevice,
         // Script ads run independently on the hosting page and do not use player priority.
         ads_priority: form.value.AdsType === 'script' ? 0 : (parseInt(form.value.AdsPriority) || 0),
@@ -427,10 +429,16 @@ onMounted(load);
                 <!-- Row 2: Type -->
                 <div class="grid grid-cols-[100px_1fr] items-center gap-4">
                     <label class="text-slate-400 text-sm">Type</label>
-                    <select v-model="form.AdsType" class="select select-bordered bg-[#0f172a] border-slate-600 text-sm h-10 min-h-0">
-                        <option value="video">Video</option>
-                        <option value="banner">Banner</option>
-                        <option value="script">Script</option>
+                    <select
+                        v-model="form.AdsType"
+                        :disabled="form.AdsType === 'script'"
+                        class="select select-bordered bg-[#0f172a] border-slate-600 text-sm h-10 min-h-0"
+                    >
+                        <option v-if="form.AdsType === 'script'" value="script">Script</option>
+                        <template v-else>
+                            <option value="video">Video</option>
+                            <option value="banner">Banner</option>
+                        </template>
                     </select>
                 </div>
 
