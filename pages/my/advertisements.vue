@@ -224,7 +224,7 @@ onMounted(load);
             <div class="p-3 flex items-center justify-between">
                 <div class="flex items-center gap-8">
                     <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-black uppercase opacity-60">Global Ads</span>
+                        <span class="text-[10px] font-black uppercase opacity-60">Enable Ads</span>
                         <input 
                             type="checkbox" 
                             v-model="fullSettings.AdsVisibility" 
@@ -389,6 +389,7 @@ onMounted(load);
                     <select v-model="form.AdsType" class="select select-bordered bg-[#0f172a] border-slate-600 text-sm h-10 min-h-0">
                         <option value="video">Video</option>
                         <option value="banner">Banner</option>
+                        <option value="script">Script</option>
                     </select>
                 </div>
 
@@ -405,8 +406,8 @@ onMounted(load);
 
                 <!-- Row 4: Link / Slug -->
                 <div class="grid grid-cols-[100px_1fr] items-center gap-4">
-                    <label class="text-slate-400 text-sm">Banner / Video Link</label>
-                    <input v-model="form.AdsLink" type="text" class="input input-bordered bg-[#0f172a] border-slate-600 text-sm h-10" placeholder="Enter banner/video Ad link" />
+                    <label class="text-slate-400 text-sm">Banner / Video Link / Ad script</label>
+                    <textarea v-model="form.AdsLink" rows="5" class="textarea textarea-bordered bg-[#0f172a] border-slate-600 text-sm w-full" placeholder="Enter banner/video Ad link or paste the ad script"></textarea>
                 </div>
 
                 <!-- Row 5: Display Zone (Multi-select) -->
