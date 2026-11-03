@@ -73,12 +73,20 @@ const fullSettings = ref(null);
 
 async function load() {
     try {
-        const [adsData, configData] = await Promise.all([
-            $fetch(`${conf.public.apiUrl}/advertisements`, { headers: { Authorization: `Bearer ${token.value}` } }),
-            $fetch(`${conf.public.apiUrl}/settings`, { headers: { Authorization: `Bearer ${token.value}` } }) // Get EVERYTHING
+        const headers = { Authorization: `Bearer ${token.value}` };
+        const [adsData, accountData] = await Promise.all([
+            $fetch(`${conf.public.apiUrl}/advertisements`, { headers }),
+            $fetch(`${conf.public.apiUrl}/account`, { headers })
         ]);
-        ads.value = adsData;
-        fullSettings.value = configData; // Store the full object (ID, AppName, etc.)
+
+        // AdvertisementList is tenant-scoped by the authenticated UserID.
+        ads.value = adsData || [];
+
+        // AdsVisibility is an application-wide setting. Only admins may read
+        // or change it, so never request /settings for regular tenant users.
+        fullSettings.value = accountData?.Admin
+            ? await $fetch(`${conf.public.apiUrl}/settings`, { headers })
+            : null;
     } catch (e: any) {
         errors.value = "Failed to load data.";
     }
