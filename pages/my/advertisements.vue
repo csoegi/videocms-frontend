@@ -410,6 +410,7 @@ onMounted(load);
                 </ul>
             </div>
         </div>
+    </div>
     <dialog :open="isModalOpen" class="modal modal-bottom sm:modal-middle">
         <div class="modal-box bg-[#1a2234] border border-slate-700 max-w-lg p-8">
             <h3 class="font-bold text-lg text-white mb-8">{{ form.ID ? 'Edit' : 'Add' }} {{ form.AdsType === 'script' ? 'Script' : 'Player' }} Advertisement</h3>
