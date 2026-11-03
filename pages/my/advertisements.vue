@@ -317,8 +317,8 @@ onMounted(load);
         <section class="flex flex-col gap-3">
             <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
                 <div>
-                    <h2 class="text-lg font-bold">Player Advertisements</h2>
-                    <p class="text-sm opacity-70">Banner and video ads displayed inside the player. Higher priority ads are selected first.</p>
+                    <h2 class="text-lg font-bold">Player Ads</h2>
+                    <p class="text-sm opacity-70">Banner/Video Ads displayed inside the player. Only one Ad with the highest priority is selected.</p>
                 </div>
                 <button @click="openCreate('video')" class="btn btn-primary btn-sm px-5 rounded-lg">
                     <Icon name="lucide:plus" class="w-4 h-4" /> Add Player Ad
@@ -327,7 +327,7 @@ onMounted(load);
             <div class="card bg-base-100 shadow-xl border border-base-200">
                 <div class="card-body p-0">
                     <div class="overflow-x-auto">
-                        <table class="table table-zebra w-full">
+                        <table class="table w-full">
                             <thead class="bg-base-200/50">
                                 <tr><th>Priority</th><th>Name</th><th>Type</th><th>Device</th><th>Status</th><th class="text-right">Actions</th></tr>
                             </thead>
@@ -338,7 +338,7 @@ onMounted(load);
                                 <tr v-for="ad in playerPaginationItems" :key="ad.ID">
                                     <td class="font-mono font-bold">{{ ad.AdsPriority ?? 0 }}</td>
                                     <td class="font-bold">{{ ad.AdsName }}</td>
-                                    <td><span class="badge badge-ghost font-mono uppercase text-[10px]">{{ ad.AdsType }}</span></td>
+                                    <td><span class="badge badge-ghost font-bold uppercase text-[10px]">{{ ad.AdsType }}</span></td>
                                     <td><span class="text-xs opacity-70">{{ ad.AdsDevice }}</span></td>
                                     <td><div :class="ad.IsActive ? 'text-primary' : 'text-error'" class="flex items-center gap-2 text-xs font-bold"><div class="w-2 h-2 rounded-full bg-current"></div>{{ ad.IsActive ? 'Visible' : 'Hidden' }}</div></td>
                                     <td class="flex justify-end gap-1">
@@ -363,17 +363,17 @@ onMounted(load);
         <section class="flex flex-col gap-3">
             <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
                 <div>
-                    <h2 class="text-lg font-bold">Script Advertisements</h2>
-                    <p class="text-sm opacity-70">Scripts loaded by the hosting page, independently of player ads. No priority ranking applies.</p>
+                    <h2 class="text-lg font-bold">Script Ads</h2>
+                    <p class="text-sm opacity-70">Scripts loaded on the page independently of the player ads. All scripts will be loaded, no priority ranking applies.</p>
                 </div>
-                <button @click="openCreate('script')" class="btn btn-secondary btn-sm px-5 rounded-lg">
+                <button @click="openCreate('script')" class="btn btn-primary btn-sm px-5 rounded-lg">
                     <Icon name="lucide:plus" class="w-4 h-4" /> Add Script Ad
                 </button>
             </div>
             <div class="card bg-base-100 shadow-xl border border-base-200">
                 <div class="card-body p-0">
                     <div class="overflow-x-auto">
-                        <table class="table table-zebra w-full">
+                        <table class="table w-full">
                             <thead class="bg-base-200/50">
                                 <tr><th>Name</th><th>Device</th><th>Status</th><th class="text-right">Actions</th></tr>
                             </thead>
@@ -382,7 +382,7 @@ onMounted(load);
                                     <td colspan="4"><div class="flex flex-col items-center justify-center py-10 opacity-50"><Icon name="lucide:code" class="w-10 h-10 mb-2" /><p>No script advertisements found.</p></div></td>
                                 </tr>
                                 <tr v-for="ad in scriptPaginationItems" :key="ad.ID">
-                                    <td><div class="font-bold">{{ ad.AdsName }}</div><span class="text-xs opacity-50">Page-level script</span></td>
+                                    <td><div class="font-bold">{{ ad.AdsName }}</div></td>
                                     <td><span class="text-xs opacity-70">{{ ad.AdsDevice }}</span></td>
                                     <td><div :class="ad.IsActive ? 'text-primary' : 'text-error'" class="flex items-center gap-2 text-xs font-bold"><div class="w-2 h-2 rounded-full bg-current"></div>{{ ad.IsActive ? 'Visible' : 'Hidden' }}</div></td>
                                     <td class="flex justify-end gap-1">
