@@ -19,9 +19,37 @@ function clearMessages() {
     }, 4000);
 }
 
-// Pagination State (matching your pattern)
-const paginationIndex = ref(0);
+// Keep pagination independent for the two advertisement groups.
+const playerPaginationIndex = ref(0);
+const scriptPaginationIndex = ref(0);
 const paginationMaxSize = ref(10);
+
+const playerAds = computed(() =>
+    ads.value
+        .filter((ad: any) => ad.AdsType !== 'script')
+        .slice()
+        .sort((a: any, b: any) => (Number(b.AdsPriority) || 0) - (Number(a.AdsPriority) || 0))
+);
+
+const scriptAds = computed(() =>
+    ads.value
+        .filter((ad: any) => ad.AdsType === 'script')
+        .slice()
+        .sort((a: any, b: any) => String(a.AdsName || '').localeCompare(String(b.AdsName || '')))
+);
+
+const playerPaginationItems = computed(() => {
+    const start = playerPaginationIndex.value * paginationMaxSize.value;
+    return playerAds.value.slice(start, start + paginationMaxSize.value);
+});
+
+const scriptPaginationItems = computed(() => {
+    const start = scriptPaginationIndex.value * paginationMaxSize.value;
+    return scriptAds.value.slice(start, start + paginationMaxSize.value);
+});
+
+const playerPaginationMenusAmount = computed(() => Math.ceil(playerAds.value.length / paginationMaxSize.value));
+const scriptPaginationMenusAmount = computed(() => Math.ceil(scriptAds.value.length / paginationMaxSize.value));
 
 // Global Settings State
 const globalSettings = ref({
@@ -42,8 +70,8 @@ const form = ref({
 });
 
 // Open modal in "Create" mode
-function openCreate() {
-    resetForm();
+function openCreate(type = 'video') {
+    resetForm(type);
     isModalOpen.value = true;
 }
 
@@ -54,19 +82,13 @@ function openEdit(ad: any) {
 }
 
 // Reset form to defaults
-function resetForm() {
+function resetForm(type = 'video') {
     form.value = {
-        ID: 0, AdsName: '', AdsType: 'video', AdsLink: '', 
-        AdsDisplay: 'before_start', AdsDevice: 'all', AdsPriority: 0, IsActive: true
+        ID: 0, AdsName: '', AdsType: type, AdsLink: '',
+        AdsDisplay: type === 'script' ? '' : 'before_start',
+        AdsDevice: 'all', AdsPriority: 0, IsActive: true
     };
 }
-
-const listPaginationItems = computed(() => {
-    const start = paginationIndex.value * paginationMaxSize.value;
-    return ads.value.slice(start, start + paginationMaxSize.value);
-});
-
-const paginationMenusAmount = computed(() => Math.ceil(ads.value.length / paginationMaxSize.value));
 
 // We store the full settings object here
 const fullSettings = ref(null);
@@ -130,7 +152,8 @@ async function saveAd() {
         ads_link:     form.value.AdsLink,
         ads_display:  form.value.AdsDisplay,
         ads_device:   form.value.AdsDevice,
-        ads_priority: parseInt(form.value.AdsPriority) || 0, // CRITICAL: Ensure it's a number
+        // Script ads run independently on the hosting page and do not use player priority.
+        ads_priority: form.value.AdsType === 'script' ? 0 : (parseInt(form.value.AdsPriority) || 0),
         is_active:    Boolean(form.value.IsActive)
     };
 
@@ -209,7 +232,7 @@ onMounted(load);
         <div class="flex justify-between items-start">
             <div class="flex flex-col gap-1">
                 <h1 class="text-2xl font-bold">Advertisement</h1>
-                <p class="text-sm opacity-70">Manage banner or video ads for player.</p>
+                <p class="text-sm opacity-70">Manage player advertisements and independent page-level scripts.</p>
             </div>            
         </div>
 
@@ -285,102 +308,108 @@ onMounted(load);
             </div>
         </div>
 
-        <div class="flex justify-between items-start">
-            <div class="flex flex-col gap-1">
-            </div>     
-             <button @click="openCreate()" class="btn btn-primary btn-sm px-6 rounded-lg">
-                <Icon name="lucide:plus" class="w-4 h-4" />
-                Add
-            </button>       
-        </div>
-
-        <!-- Ads Table Card -->
-        <div class="card bg-base-100 shadow-xl border border-base-200">
-            <div class="card-body p-0">
-                <div class="overflow-x-auto">
-                    <table class="table table-zebra w-full">
-                        <thead class="bg-base-200/50">
-                            <tr>
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Device</th>
-                                <th>Status</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-if="ads.length === 0">
-                                <td colspan="5">
-                                    <div class="flex flex-col items-center justify-center py-12 opacity-50">
-                                        <Icon name="lucide:megaphone-off" class="w-12 h-12 mb-2" />
-                                        <p>No advertisements found.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-for="ad in listPaginationItems" :key="ad.ID">
-                                <td class="font-bold">{{ ad.AdsName }}</td>
-                                <td><span class="badge badge-ghost font-mono uppercase text-[10px]">{{ ad.AdsType }}</span></td>
-                                <td><span class="text-xs opacity-70">{{ ad.AdsDevice }}</span></td>
-                                <td>
-                                    <!-- Visibility Status Indicator -->
-                                    <div :class="ad.IsActive ? 'text-primary' : 'text-error'" class="flex items-center gap-2 text-xs font-bold">
-                                        <div class="w-2 h-2 rounded-full bg-current"></div>
-                                        {{ ad.IsActive ? 'Visible' : 'Hidden' }}
-                                    </div>
-                                </td>
-                                <td class="flex justify-end gap-1">
-                                    <!-- Edit Button -->
-                                    <button @click="openEdit(ad)" class="btn btn-square btn-ghost btn-xs text-info" title="Edit Ad">
-                                        <Icon name="lucide:edit-3" class="w-4 h-4" />
-                                    </button>
-                                    
-                                    <!-- Visibility Toggle Button -->
-                                    <button @click="toggleAdStatus(ad)" class="btn btn-square btn-ghost btn-xs" :class="ad.IsActive ? 'text-primary' : 'text-slate-400'" title="Toggle Visibility">
-                                        <Icon :name="ad.IsActive ? 'lucide:eye' : 'lucide:eye-off'" class="w-4 h-4" />
-                                    </button>
-
-                                    <!-- Delete Button -->
-                                    <button @click="deleteAd(ad.ID)" class="btn btn-square btn-ghost btn-xs text-error" title="Delete Ad">
-                                        <Icon name="lucide:trash-2" class="w-4 h-4" />
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <!-- Player advertisements: banner and video ads share one priority list. -->
+        <section class="flex flex-col gap-3">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                <div>
+                    <h2 class="text-lg font-bold">Player Advertisements</h2>
+                    <p class="text-sm opacity-70">Banner and video ads displayed inside the player. Higher priority ads are selected first.</p>
                 </div>
-            </div>
-        </div>
-
-        <!-- Pagination (matching your pattern) -->
-        <div class="flex justify-between items-center px-2">
-            <div class="dropdown dropdown-top">
-                <label tabindex="0" class="btn btn-ghost btn-sm text-xs font-normal">
-                    Show {{ paginationMaxSize }}
-                    <Icon name="lucide:chevron-up" class="w-3 h-3 ml-1" />
-                </label>
-                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32 border border-base-200">
-                    <li v-for="max in [10, 25, 50, 100]" :key="max">
-                        <button @click="paginationMaxSize = max" :class="{ 'active': paginationMaxSize === max }">
-                            {{ max }} rows
-                        </button>
-                    </li>
-                </ul>
-            </div>
-            <div class="join">
-                <button 
-                    v-for="index in paginationMenusAmount" :key="index"
-                    @click="paginationIndex = index - 1" 
-                    class="join-item btn btn-sm"
-                    :class="paginationIndex === index - 1 ? 'btn-active' : ''"
-                >
-                    {{ index }}
+                <button @click="openCreate('video')" class="btn btn-primary btn-sm px-5 rounded-lg">
+                    <Icon name="lucide:plus" class="w-4 h-4" /> Add Player Ad
                 </button>
             </div>
+            <div class="card bg-base-100 shadow-xl border border-base-200">
+                <div class="card-body p-0">
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                            <thead class="bg-base-200/50">
+                                <tr><th>Priority</th><th>Name</th><th>Type</th><th>Device</th><th>Status</th><th class="text-right">Actions</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="playerAds.length === 0">
+                                    <td colspan="6"><div class="flex flex-col items-center justify-center py-10 opacity-50"><Icon name="lucide:megaphone-off" class="w-10 h-10 mb-2" /><p>No player advertisements found.</p></div></td>
+                                </tr>
+                                <tr v-for="ad in playerPaginationItems" :key="ad.ID">
+                                    <td class="font-mono font-bold">{{ ad.AdsPriority ?? 0 }}</td>
+                                    <td class="font-bold">{{ ad.AdsName }}</td>
+                                    <td><span class="badge badge-ghost font-mono uppercase text-[10px]">{{ ad.AdsType }}</span></td>
+                                    <td><span class="text-xs opacity-70">{{ ad.AdsDevice }}</span></td>
+                                    <td><div :class="ad.IsActive ? 'text-primary' : 'text-error'" class="flex items-center gap-2 text-xs font-bold"><div class="w-2 h-2 rounded-full bg-current"></div>{{ ad.IsActive ? 'Visible' : 'Hidden' }}</div></td>
+                                    <td class="flex justify-end gap-1">
+                                        <button @click="openEdit(ad)" class="btn btn-square btn-ghost btn-xs text-info" title="Edit Ad"><Icon name="lucide:edit-3" class="w-4 h-4" /></button>
+                                        <button @click="toggleAdStatus(ad)" class="btn btn-square btn-ghost btn-xs" :class="ad.IsActive ? 'text-primary' : 'text-slate-400'" title="Toggle Visibility"><Icon :name="ad.IsActive ? 'lucide:eye' : 'lucide:eye-off'" class="w-4 h-4" /></button>
+                                        <button @click="deleteAd(ad.ID)" class="btn btn-square btn-ghost btn-xs text-error" title="Delete Ad"><Icon name="lucide:trash-2" class="w-4 h-4" /></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div v-if="playerPaginationMenusAmount > 1" class="flex justify-end px-2">
+                <div class="join">
+                    <button v-for="index in playerPaginationMenusAmount" :key="index" @click="playerPaginationIndex = index - 1" class="join-item btn btn-sm" :class="playerPaginationIndex === index - 1 ? 'btn-active' : ''">{{ index }}</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Script advertisements are independent from player placement and priority. -->
+        <section class="flex flex-col gap-3">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                <div>
+                    <h2 class="text-lg font-bold">Script Advertisements</h2>
+                    <p class="text-sm opacity-70">Scripts loaded by the hosting page, independently of player ads. No priority ranking applies.</p>
+                </div>
+                <button @click="openCreate('script')" class="btn btn-secondary btn-sm px-5 rounded-lg">
+                    <Icon name="lucide:plus" class="w-4 h-4" /> Add Script Ad
+                </button>
+            </div>
+            <div class="card bg-base-100 shadow-xl border border-base-200">
+                <div class="card-body p-0">
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                            <thead class="bg-base-200/50">
+                                <tr><th>Name</th><th>Device</th><th>Status</th><th class="text-right">Actions</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="scriptAds.length === 0">
+                                    <td colspan="4"><div class="flex flex-col items-center justify-center py-10 opacity-50"><Icon name="lucide:code" class="w-10 h-10 mb-2" /><p>No script advertisements found.</p></div></td>
+                                </tr>
+                                <tr v-for="ad in scriptPaginationItems" :key="ad.ID">
+                                    <td><div class="font-bold">{{ ad.AdsName }}</div><span class="text-xs opacity-50">Page-level script</span></td>
+                                    <td><span class="text-xs opacity-70">{{ ad.AdsDevice }}</span></td>
+                                    <td><div :class="ad.IsActive ? 'text-primary' : 'text-error'" class="flex items-center gap-2 text-xs font-bold"><div class="w-2 h-2 rounded-full bg-current"></div>{{ ad.IsActive ? 'Visible' : 'Hidden' }}</div></td>
+                                    <td class="flex justify-end gap-1">
+                                        <button @click="openEdit(ad)" class="btn btn-square btn-ghost btn-xs text-info" title="Edit Script Ad"><Icon name="lucide:edit-3" class="w-4 h-4" /></button>
+                                        <button @click="toggleAdStatus(ad)" class="btn btn-square btn-ghost btn-xs" :class="ad.IsActive ? 'text-primary' : 'text-slate-400'" title="Toggle Visibility"><Icon :name="ad.IsActive ? 'lucide:eye' : 'lucide:eye-off'" class="w-4 h-4" /></button>
+                                        <button @click="deleteAd(ad.ID)" class="btn btn-square btn-ghost btn-xs text-error" title="Delete Script Ad"><Icon name="lucide:trash-2" class="w-4 h-4" /></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div v-if="scriptPaginationMenusAmount > 1" class="flex justify-end px-2">
+                <div class="join">
+                    <button v-for="index in scriptPaginationMenusAmount" :key="index" @click="scriptPaginationIndex = index - 1" class="join-item btn btn-sm" :class="scriptPaginationIndex === index - 1 ? 'btn-active' : ''">{{ index }}</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shared page-size control; each section retains its own page index. -->
+        <div class="flex justify-start items-center px-2">
+            <div class="dropdown dropdown-top">
+                <label tabindex="0" class="btn btn-ghost btn-sm text-xs font-normal">Show {{ paginationMaxSize }} per section <Icon name="lucide:chevron-up" class="w-3 h-3 ml-1" /></label>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32 border border-base-200">
+                    <li v-for="max in [10, 25, 50, 100]" :key="max"><button @click="paginationMaxSize = max; playerPaginationIndex = 0; scriptPaginationIndex = 0" :class="{ 'active': paginationMaxSize === max }">{{ max }} rows</button></li>
+                </ul>
+            </div>
         </div>
-    </div>
     <dialog :open="isModalOpen" class="modal modal-bottom sm:modal-middle">
         <div class="modal-box bg-[#1a2234] border border-slate-700 max-w-lg p-8">
-            <h3 class="font-bold text-lg text-white mb-8">Add Advertisement</h3>
+            <h3 class="font-bold text-lg text-white mb-8">{{ form.ID ? 'Edit' : 'Add' }} {{ form.AdsType === 'script' ? 'Script' : 'Player' }} Advertisement</h3>
             
             <!-- Form Container: Vertical Stack with Fixed-Width Labels -->
             <div class="flex flex-col gap-6">
@@ -418,8 +447,8 @@ onMounted(load);
                     <textarea v-model="form.AdsLink" rows="5" class="textarea textarea-bordered bg-[#0f172a] border-slate-600 text-sm w-full" placeholder="Enter banner/video Ad link or paste the ad script"></textarea>
                 </div>
 
-                <!-- Row 5: Display Zone (Multi-select) -->
-                <div class="grid grid-cols-[100px_1fr] items-start gap-4">
+                <!-- Display Zone only applies to player advertisements. -->
+                <div v-if="form.AdsType !== 'script'" class="grid grid-cols-[100px_1fr] items-start gap-4">
                     <label class="text-slate-400 text-sm mt-2">Display Zone</label>
                     <div class="flex flex-wrap gap-2 p-2 rounded-lg bg-[#0f172a] border border-slate-600 min-h-[40px]">
                         <button 
@@ -435,8 +464,8 @@ onMounted(load);
                     </div>
                 </div>
 
-                <!-- Row 6: Priority -->
-                <div class="grid grid-cols-[100px_1fr] items-center gap-4">
+                <!-- Player advertisements share a priority list; scripts do not use priority. -->
+                <div v-if="form.AdsType !== 'script'" class="grid grid-cols-[100px_1fr] items-center gap-4">
                     <label class="text-slate-400 text-sm">Priority</label>
                     <div class="flex flex-col gap-1">
                         <input 
